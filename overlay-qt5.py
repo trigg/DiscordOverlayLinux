@@ -134,7 +134,7 @@ class Overlay(QtCore.QObject):
         self.settingsbox.addWidget(self.settingsDistanceFromBottom)
         self.settingsbox.addWidget(self.settingSave)
         self.settings.setLayout(self.settingsbox)
-        self.settings.show()
+        self.settings.showMaximized()
 
 
     def createOverlay(self):
