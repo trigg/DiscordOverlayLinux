@@ -8,21 +8,26 @@ A QT/X11 (much to my distress) browser window to overlay Discord activity over t
 
 ## Usage
 
-Visit https://streamkit.discord.com/overlay and choose your overlay & settings. On the right copy the URL when done.
-create file `~/.discordurl` and paste the URL in, save
+On first launch a setup-window will appear. First choose either 'OBS' or 'XSplit'. I'm convinced there's no difference but why not use this as a show of faith.
+
+From there choose which widget you want to use as your overlay from the top, and make and changes to the style. Press the 'Use this' button
+
+Adjust the sliders to position the window, these correspond to invisible padding around the overlay, in the current order:
+- Distance from left of screen
+- Distance from right of screen
+- Distance from top of screen
+- Distance from bottom of screen
+
 
 ## Known Issues
 
-- Proper Fullscreen windows will hide this, but most games have a borderless-window option that works.
 - Can't close. use `pkill overlay-qt5.py` to stop.
 - If loaded before Discord is logged in no display will show. Quite possible that unexpected Discord crashes will cause the same issue
 
-### Missing features
+### Tested configurations
 
-- Show overlay options to user and craft URL for them, removing manual setup steps
-- Location control
+- Wayfire/Wayland - Works Perfectly
+- Openbox/X11     - Works Perfectly
+- Gnome/X11       - Works
 
-### Untested
-
-- Wayland. Although I strongly advise we start a whole different project for that case.
-- Anything that isn't Openbox, because I'm stubborn
+- 
