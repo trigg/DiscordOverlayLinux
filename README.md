@@ -15,6 +15,7 @@ create file `~/.discordurl` and paste the URL in, save
 
 - Proper Fullscreen windows will hide this, but most games have a borderless-window option that works.
 - Can't close. use `pkill overlay-qt5.py` to stop.
+- If loaded before Discord is logged in no display will show. Quite possible that unexpected Discord crashes will cause the same issue
 
 ### Missing features
 
