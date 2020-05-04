@@ -24,15 +24,18 @@ class MyWindow(QtWidgets.QWidget):
         self.hide()
 
 class Overlay(QtCore.QObject):
-    fileName = ".discordurl"
-    configFileName= ".discoverlay.ini"
+    fileName = ".config/discord-overlay/discordurl"
+    configFileName= ".config/discord-overlay/discoverlay.ini"
     url = None
 
     def main(self):
         # Get Screen dimensions
         screen = app.primaryScreen()
         self.size = screen.size()
-
+        #Check for existing Dir
+        if not os.path.exists(".config/discord-overlay/"):
+            os.makedirs(".config/discord-overlay/")
+            
         if os.path.isfile(self.fileName):
             with open(self.fileName) as file:
                 self.url = file.readline().rstrip()
