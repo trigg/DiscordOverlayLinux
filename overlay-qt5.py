@@ -94,9 +94,9 @@ class Overlay(QtCore.QObject):
             self.posYB=int(config.get('main', 'yb'))
         else:
             self.posXL=0
-            self.posXR=self.size.width()
+            self.posXR=200
             self.posYT=0
-            self.posYB=self.size.height()
+            self.posYB=400
 
         self.createOverlay()
         self.createSettingsWindow()
