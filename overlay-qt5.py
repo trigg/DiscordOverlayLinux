@@ -21,8 +21,8 @@ from pathlib import Path
 
 
 class Overlay(QtCore.QObject):
-    fileName = ".config/discord-overlay/.discordurl"
-    configFileName= ".config/discord-overlay/.discoverlay.ini"
+    fileName = ".config/discord-overlay/discordurl"
+    configFileName= ".config/discord-overlay/discoverlay.ini"
     url = None
 
     def main(self):
