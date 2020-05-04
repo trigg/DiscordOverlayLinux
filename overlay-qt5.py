@@ -22,7 +22,52 @@ from pathlib import Path
 
 class MyWindow(QtWidgets.QWidget):
     def closeEvent(self,data):
+        # Don't close settings, only hide it
         self.hide()
+
+class ResizingImage(QtWidgets.QLabel):
+    image = None
+    w=0
+    h=0
+    def setImage(self, image):
+        self.image = image
+        self.fillImage()
+
+    def resizeEvent(self,e):
+        self.w= e.size().width()
+        self.h= e.size().height()
+        self.fillImage()
+
+    def fillImage(self):
+        if self.image and self.w>0 and self.h>0:
+            self.setPixmap(self.image.scaled(int(self.w), int(self.h),QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation))
+
+class AspectRatioWidget(QtWidgets.QWidget):
+    def __init__(self, widget, x,y,parent):
+        super().__init__(parent)
+        self.aspect_ratio = x / y
+        self.setLayout(QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight, self))
+        #  add spacer, then widget, then spacer
+        self.layout().addItem(QtWidgets.QSpacerItem(0, 0))
+        self.layout().addWidget(widget)
+        self.layout().addItem(QtWidgets.QSpacerItem(0, 0))
+
+    def resizeEvent(self, e):
+        w = e.size().width()
+        h = e.size().height()
+
+        if w / h > self.aspect_ratio:  # too wide
+            self.layout().setDirection(QtWidgets.QBoxLayout.LeftToRight)
+            widget_stretch = int(h * self.aspect_ratio)
+            outer_stretch =int( (w - widget_stretch) / 2 + 0.5 )
+        else:  # too tall
+            self.layout().setDirection(QtWidgets.QBoxLayout.TopToBottom)
+            widget_stretch = int(w / self.aspect_ratio)
+            outer_stretch =int( (h - widget_stretch) / 2 + 0.5 )
+
+        self.layout().setStretch(0, outer_stretch)
+        self.layout().setStretch(1, widget_stretch)
+        self.layout().setStretch(2, outer_stretch)
 
 class Overlay(QtCore.QObject):
     fileName = ".config/discord-overlay/discordurl"
@@ -86,10 +131,9 @@ class Overlay(QtCore.QObject):
     def on_click(self):
         self.settingWebView.page().runJavaScript("document.getElementsByClassName('source-url')[0].value;", self.on_url)
 
+    @pyqtSlot()
     def skip_stream_button(self):
         self.settingWebView.page().runJavaScript("buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}")
-
-
 
     @pyqtSlot()
     def changeValueFL(self):
@@ -130,10 +174,14 @@ class Overlay(QtCore.QObject):
         self.settingsbox = QtWidgets.QVBoxLayout()
         self.settingWebView = QWebEngineView()
         self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
+        self.settingsGridWidget= QtWidgets.QWidget()
+        self.settingsAspectRatio = AspectRatioWidget(self.settingsGridWidget,self.size.width(), self.size.height(),None)
+        self.settingsGrid = QtWidgets.QGridLayout()
+        self.settingsPreview = ResizingImage()
         self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
+        self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
         self.settingSave = QtWidgets.QPushButton("Save & Exit")
         
         self.settingTakeUrl.clicked.connect(self.on_click)
@@ -147,20 +195,32 @@ class Overlay(QtCore.QObject):
         self.settingsDistanceFromRight.setValue(self.posXR)
         self.settingsDistanceFromTop.valueChanged[int].connect(self.changeValueFT)
         self.settingsDistanceFromTop.setMaximum(self.size.height())
+        self.settingsDistanceFromTop.setInvertedAppearance(True)
         self.settingsDistanceFromTop.setValue(self.posYT)
         self.settingsDistanceFromBottom.valueChanged[int].connect(self.changeValueFB)
         self.settingsDistanceFromBottom.setMaximum(self.size.height())
+        self.settingsDistanceFromBottom.setInvertedAppearance(True)
         self.settingsDistanceFromBottom.setValue(self.posYB)
         self.settingSave.clicked.connect(self.save)
-    
+
         self.settingsbox.addWidget(self.settingWebView)
         self.settingsbox.addWidget(self.settingTakeUrl)
-        self.settingsbox.addWidget(self.settingsDistanceFromLeft)
-        self.settingsbox.addWidget(self.settingsDistanceFromRight)
-        self.settingsbox.addWidget(self.settingsDistanceFromTop)
-        self.settingsbox.addWidget(self.settingsDistanceFromBottom)
-        self.settingsbox.addWidget(self.settingSave)
+        self.settingsGrid.addWidget(self.settingsPreview,0,0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromLeft,1,0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromRight,2,0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromTop,0,1)
+        self.settingsGrid.addWidget(self.settingsDistanceFromBottom,0,2)
+        self.settingsGridWidget.setLayout(self.settingsGrid)
+        self.settingsbox.addWidget(self.settingsAspectRatio)
         self.settings.setLayout(self.settingsbox)
+        self.settingsbox.addWidget(self.settingSave)
+        self.screenShot()
+
+    def screenShot(self):
+        screen = QtWidgets.QApplication.primaryScreen()
+        screenshot = screen.grabWindow(0)
+        self.settingsPreview.setImage(screenshot)
+        self.settingsPreview.setContentsMargins(0,0,0,0)
 
     def createOverlay(self):
         self.overlay = QWebEngineView()
@@ -179,14 +239,12 @@ class Overlay(QtCore.QObject):
                 )
         self.overlay.load(QtCore.QUrl(self.url))
 
-
         self.overlay.setStyleSheet("background:transparent;")
         self.moveOverlay()
         self.overlay.show()
 
     def exit(self):
         app.quit()
-        sys.exit(0)
 
     def showSettings(self):
         self.settings.show()
