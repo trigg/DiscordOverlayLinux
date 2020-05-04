@@ -139,13 +139,13 @@ class Overlay(QtCore.QObject):
         hideLogo = "document.getElementsByClassName('install-logo')[0].style.setProperty('display','none');"
         resizeContents = "document.getElementsByClassName('content')[0].style.setProperty('top','30px');"
         resizeHeader = "document.getElementsByClassName('header')[0].style.setProperty('height','35px');"
-        hidePreview = "document.getElementsByClassName('config-link')[0].style.setProperty('display','none');"
+        hidePreview = "document.getElementsByClassName('config-link')[0].style.setProperty('height','300px');document.getElementsByClassName('config-link')[0].style.setProperty('overflow','hidden');"
         hideClose = "document.getElementsByClassName('close')[0].style.setProperty('display','none');"
 
         self.runJS(skipIntro)
         self.runJS(hideLogo)
         self.runJS(resizeContents)
-        #self.runJS(hidePreview)
+        self.runJS(hidePreview)
         self.runJS(resizeHeader)
         self.runJS(hideClose)
 
