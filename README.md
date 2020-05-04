@@ -2,6 +2,7 @@
 
 A QT browser window to overlay Discord activity over the screen.
 ![Steam Big Picture](https://user-images.githubusercontent.com/535772/81019771-e0ea3b00-8e56-11ea-9afe-7b684478e1de.png)
+![Witch It](https://user-images.githubusercontent.com/964775/81019917-99b47800-8e5f-11ea-9514-2b3cef24ebbf.png)
 
 
 ## Dependencies
