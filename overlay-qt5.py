@@ -74,6 +74,12 @@ class Overlay(QtCore.QObject):
     configFileName= ".config/discord-overlay/discoverlay.ini"
     url = None
 
+    def getInt(self, config, name, default):
+        if config and config.has_option('main', name):
+            return config.getint('main', name)
+        else:
+            return default
+
     def main(self):
         # Get Screen dimensions
         screen = app.primaryScreen()
@@ -85,18 +91,15 @@ class Overlay(QtCore.QObject):
         if os.path.isfile(self.fileName):
             with open(self.fileName) as file:
                 self.url = file.readline().rstrip()
+        config = None
         if os.path.isfile(self.configFileName):
             config = ConfigParser()
             config.read(self.configFileName)
-            self.posXL=int(config.get('main', 'xl'))
-            self.posXR=int(config.get('main', 'xr'))
-            self.posYT=int(config.get('main', 'yt'))
-            self.posYB=int(config.get('main', 'yb'))
-        else:
-            self.posXL=0
-            self.posXR=200
-            self.posYT=0
-            self.posYB=400
+        self.posXL=self.getInt(config, 'xl', 0)
+        self.posXR=self.getInt(config, 'xr', 200)
+        self.posYT=self.getInt(config, 'yt', 50)
+        self.posYB=self.getInt(config, 'yb', 450)
+        self.right=(self.getInt(config, 'rightalign', 0) == 1)
 
         self.createOverlay()
         self.createSettingsWindow()
@@ -114,6 +117,7 @@ class Overlay(QtCore.QObject):
     def on_url(self, url):
         self.overlay.load(QtCore.QUrl(url))
         self.url = url
+        self.save()
 
     @pyqtSlot()
     def save(self):
@@ -123,11 +127,13 @@ class Overlay(QtCore.QObject):
         config.set('main','xr','%d'%(self.posXR))
         config.set('main','yt','%d'%(self.posYT))
         config.set('main','yb','%d'%(self.posYB))
+        config.set('main','rightalign','%d' % (int(self.right)))
         with open(self.configFileName,'w') as file:
             config.write(file)
         with open(self.fileName,'w') as file:
             file.write(self.url)
         self.settings.hide()
+        self.position.hide()
 
     @pyqtSlot()
     def on_click(self):
@@ -155,6 +161,27 @@ class Overlay(QtCore.QObject):
         else:
             self.settingWebView.page().runJavaScript(string)
 
+    def applyTweaks(self):
+        if self.right:
+            self.addCSS('cssrightalign','li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }');
+        else:
+            self.delCSS('cssrightalign')
+
+    def addCSS(self,name,css):
+        js = '(function() { css = document.createElement(\'style\');css.type=\'text/css\';css.id=\'%s\';document.head.appendChild(css);css.innerText=\'%s\';})()' % (name,css)
+        self.overlay.page().runJavaScript(js)
+
+    def delCSS(self,name):
+        js = "(function() { css = document.getElementById('%s'); css.parentNode.removeChild(css); })()" % (name)
+        self.overlay.page().runJavaScript(js)
+
+    @pyqtSlot()
+    def toggleRightAlign(self,button=None):
+        if self.rightAlign.isChecked():
+            self.right=True
+        else:
+            self.right=False
+        self.applyTweaks()
 
     @pyqtSlot()
     def changeValueFL(self):
@@ -236,13 +263,17 @@ class Overlay(QtCore.QObject):
         self.settings = MyWindow()
         self.settingsbox = QtWidgets.QVBoxLayout()
         self.settingWebView = QWebEngineView()
+        self.rightAlign = QtWidgets.QCheckBox("Right Align")
         self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
         
         self.settingTakeUrl.clicked.connect(self.on_click)
         self.settingWebView.loadFinished.connect(self.skip_stream_button)
+        self.rightAlign.stateChanged.connect(self.toggleRightAlign)
+        self.rightAlign.setChecked(self.right)
         self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
 
         self.settingsbox.addWidget(self.settingWebView)
+        self.settingsbox.addWidget(self.rightAlign)
         self.settingsbox.addWidget(self.settingTakeUrl)
         self.settings.setLayout(self.settingsbox)
 
@@ -267,6 +298,7 @@ class Overlay(QtCore.QObject):
                 QtCore.Qt.WindowSystemMenuHint |
                 QtCore.Qt.WindowMinimizeButtonHint
                 )
+        self.overlay.loadFinished.connect(self.applyTweaks)
         self.overlay.load(QtCore.QUrl(self.url))
 
         self.overlay.setStyleSheet("background:transparent;")
