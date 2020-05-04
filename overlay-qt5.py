@@ -100,9 +100,11 @@ class Overlay(QtCore.QObject):
 
         self.createOverlay()
         self.createSettingsWindow()
+        self.createPositionWindow()
         self.createSysTrayIcon()
         if not self.url:
             self.settings.show()
+            self.position.show()
 
     def moveOverlay(self):
         print("%i %i, %i %i" % (self.posXL, self.posYT, self.posXR, self.posYB))
@@ -129,11 +131,30 @@ class Overlay(QtCore.QObject):
 
     @pyqtSlot()
     def on_click(self):
-        self.settingWebView.page().runJavaScript("document.getElementsByClassName('source-url')[0].value;", self.on_url)
+        self.runJS("document.getElementsByClassName('source-url')[0].value;", self.on_url)
 
     @pyqtSlot()
     def skip_stream_button(self):
-        self.settingWebView.page().runJavaScript("buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}")
+        skipIntro = "buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}"
+        hideLogo = "document.getElementsByClassName('install-logo')[0].style.setProperty('display','none');"
+        resizeContents = "document.getElementsByClassName('content')[0].style.setProperty('top','30px');"
+        resizeHeader = "document.getElementsByClassName('header')[0].style.setProperty('height','35px');"
+        hidePreview = "document.getElementsByClassName('config-link')[0].style.setProperty('display','none');"
+        hideClose = "document.getElementsByClassName('close')[0].style.setProperty('display','none');"
+
+        self.runJS(skipIntro)
+        self.runJS(hideLogo)
+        self.runJS(resizeContents)
+        #self.runJS(hidePreview)
+        self.runJS(resizeHeader)
+        self.runJS(hideClose)
+
+    def runJS(self,string, retFunc=None):
+        if retFunc:
+            self.settingWebView.page().runJavaScript(string, retFunc)
+        else:
+            self.settingWebView.page().runJavaScript(string)
+
 
     @pyqtSlot()
     def changeValueFL(self):
@@ -162,18 +183,18 @@ class Overlay(QtCore.QObject):
 
         self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(pm), app)
         self.trayMenu = QtWidgets.QMenu()
-        self.showAction = self.trayMenu.addAction("Settings")
+        self.showAction = self.trayMenu.addAction("Change Style")
         self.showAction.triggered.connect(self.showSettings)
+        self.showAction2 = self.trayMenu.addAction("Change Position")
+        self.showAction2.triggered.connect(self.showPosition)
         self.exitAction = self.trayMenu.addAction("Close")
         self.exitAction.triggered.connect(self.exit)
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.show()
 
-    def createSettingsWindow(self):
-        self.settings = MyWindow()
-        self.settingsbox = QtWidgets.QVBoxLayout()
-        self.settingWebView = QWebEngineView()
-        self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
+    def createPositionWindow(self):
+        self.position = MyWindow()
+        self.positionbox = QtWidgets.QVBoxLayout()
         self.settingsGridWidget= QtWidgets.QWidget()
         self.settingsAspectRatio = AspectRatioWidget(self.settingsGridWidget,self.size.width(), self.size.height(),None)
         self.settingsGrid = QtWidgets.QGridLayout()
@@ -183,10 +204,7 @@ class Overlay(QtCore.QObject):
         self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
         self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
         self.settingSave = QtWidgets.QPushButton("Save & Exit")
-        
-        self.settingTakeUrl.clicked.connect(self.on_click)
-        self.settingWebView.loadFinished.connect(self.skip_stream_button)
-        self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
+
         self.settingsDistanceFromLeft.valueChanged[int].connect(self.changeValueFL)
         self.settingsDistanceFromLeft.setMaximum(self.size.width())
         self.settingsDistanceFromLeft.setValue(self.posXL)
@@ -203,18 +221,30 @@ class Overlay(QtCore.QObject):
         self.settingsDistanceFromBottom.setValue(self.posYB)
         self.settingSave.clicked.connect(self.save)
 
-        self.settingsbox.addWidget(self.settingWebView)
-        self.settingsbox.addWidget(self.settingTakeUrl)
         self.settingsGrid.addWidget(self.settingsPreview,0,0)
         self.settingsGrid.addWidget(self.settingsDistanceFromLeft,1,0)
         self.settingsGrid.addWidget(self.settingsDistanceFromRight,2,0)
         self.settingsGrid.addWidget(self.settingsDistanceFromTop,0,1)
         self.settingsGrid.addWidget(self.settingsDistanceFromBottom,0,2)
         self.settingsGridWidget.setLayout(self.settingsGrid)
-        self.settingsbox.addWidget(self.settingsAspectRatio)
-        self.settings.setLayout(self.settingsbox)
-        self.settingsbox.addWidget(self.settingSave)
+        self.positionbox.addWidget(self.settingsAspectRatio)
+        self.position.setLayout(self.positionbox)
+        self.positionbox.addWidget(self.settingSave)
         self.screenShot()
+
+    def createSettingsWindow(self):
+        self.settings = MyWindow()
+        self.settingsbox = QtWidgets.QVBoxLayout()
+        self.settingWebView = QWebEngineView()
+        self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
+        
+        self.settingTakeUrl.clicked.connect(self.on_click)
+        self.settingWebView.loadFinished.connect(self.skip_stream_button)
+        self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
+
+        self.settingsbox.addWidget(self.settingWebView)
+        self.settingsbox.addWidget(self.settingTakeUrl)
+        self.settings.setLayout(self.settingsbox)
 
     def screenShot(self):
         screen = QtWidgets.QApplication.primaryScreen()
@@ -249,8 +279,8 @@ class Overlay(QtCore.QObject):
     def showSettings(self):
         self.settings.show()
 
-    def hideSettings(self):
-        self.settings.hide()
+    def showPosition(self):
+        self.position.show()
 
 os.chdir(Path.home())
 app=QtWidgets.QApplication(sys.argv)
