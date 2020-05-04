@@ -6,6 +6,10 @@ A QT/X11 (much to my distress) browser window to overlay Discord activity over t
 
 `qt5-webengine pyqt5 python-pyqtwebengine`
 
+Ubuntu/Debian:
+
+`sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine`
+
 ## Usage
 
 On first launch a setup-window will appear. First choose either 'OBS' or 'XSplit'. I'm convinced there's no difference but why not use this as a show of faith.
