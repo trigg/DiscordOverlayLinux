@@ -86,6 +86,11 @@ class Overlay(QtCore.QObject):
     def on_click(self):
         self.settingWebView.page().runJavaScript("document.getElementsByClassName('source-url')[0].value;", self.on_url)
 
+    def skip_stream_button(self):
+        self.settingWebView.page().runJavaScript("buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}")
+
+
+
     @pyqtSlot()
     def changeValueFL(self):
         self.posXL=self.settingsDistanceFromLeft.value()
@@ -132,6 +137,7 @@ class Overlay(QtCore.QObject):
         self.settingSave = QtWidgets.QPushButton("Save & Exit")
         
         self.settingTakeUrl.clicked.connect(self.on_click)
+        self.settingWebView.loadFinished.connect(self.skip_stream_button)
         self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
         self.settingsDistanceFromLeft.valueChanged[int].connect(self.changeValueFL)
         self.settingsDistanceFromLeft.setMaximum(self.size.width())
