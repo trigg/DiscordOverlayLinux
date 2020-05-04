@@ -21,15 +21,18 @@ from pathlib import Path
 
 
 class Overlay(QtCore.QObject):
-    fileName = ".discordurl"
-    configFileName= ".discoverlay.ini"
+    fileName = ".discord-overlay/.discordurl"
+    configFileName= ".discord-overlay/.discoverlay.ini"
     url = None
 
     def main(self):
         # Get Screen dimensions
         screen = app.primaryScreen()
         self.size = screen.size()
-
+        #Check for existing Dir
+        if not os.path.exists(".discord-overlay/"):
+            os.makedirs(".discord-overlay/")
+            
         if os.path.isfile(self.fileName):
             with open(self.fileName) as file:
                 self.url = file.readline().rstrip()
