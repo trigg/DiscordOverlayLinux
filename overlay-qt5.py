@@ -161,7 +161,6 @@ class Overlay(QtCore.QObject):
         self.settingsbox.addWidget(self.settingsDistanceFromBottom)
         self.settingsbox.addWidget(self.settingSave)
         self.settings.setLayout(self.settingsbox)
-        self.settings.showMaximized()
 
     def createOverlay(self):
         self.overlay = QWebEngineView()
@@ -186,6 +185,7 @@ class Overlay(QtCore.QObject):
         self.overlay.show()
 
     def exit(self):
+        app.quit()
         sys.exit(0)
 
     def showSettings(self):
