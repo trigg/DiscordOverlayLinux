@@ -19,6 +19,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import *
 from pathlib import Path
 
+class MyWindow(QtWidgets.QWidget):
+    def closeEvent(self,data):
+        self.hide()
 
 class Overlay(QtCore.QObject):
     fileName = ".discordurl"
@@ -47,10 +50,10 @@ class Overlay(QtCore.QObject):
             self.posYB=self.size.height()
 
         self.createOverlay()
+        self.createSettingsWindow()
+        self.createSysTrayIcon()
         if not self.url:
-            self.createSettingsWindow()
-
-
+            self.settings.show()
 
     def moveOverlay(self):
         print("%i %i, %i %i" % (self.posXL, self.posYT, self.posXR, self.posYB))
@@ -99,8 +102,18 @@ class Overlay(QtCore.QObject):
         self.posYB=self.settingsDistanceFromBottom.value()
         self.moveOverlay()
 
+    def createSysTrayIcon(self):
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon("Bomb.xpm"), app)
+        self.trayMenu = QtWidgets.QMenu()
+        self.showAction = self.trayMenu.addAction("Settings")
+        self.showAction.triggered.connect(self.showSettings)
+        self.exitAction = self.trayMenu.addAction("Close")
+        self.exitAction.triggered.connect(self.exit)
+        self.trayIcon.setContextMenu(self.trayMenu)
+        self.trayIcon.show()
+
     def createSettingsWindow(self):
-        self.settings = QtWidgets.QWidget()
+        self.settings = MyWindow()
         self.settingsbox = QtWidgets.QVBoxLayout()
         self.settingWebView = QWebEngineView()
         self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
@@ -136,7 +149,6 @@ class Overlay(QtCore.QObject):
         self.settings.setLayout(self.settingsbox)
         self.settings.showMaximized()
 
-
     def createOverlay(self):
         self.overlay = QWebEngineView()
         self.overlay.page().setBackgroundColor(QtCore.Qt.transparent)
@@ -158,6 +170,15 @@ class Overlay(QtCore.QObject):
         self.overlay.setStyleSheet("background:transparent;")
         self.moveOverlay()
         self.overlay.show()
+
+    def exit(self):
+        sys.exit(0)
+
+    def showSettings(self):
+        self.settings.show()
+
+    def hideSettings(self):
+        self.settings.hide()
 
 os.chdir(Path.home())
 app=QtWidgets.QApplication(sys.argv)
