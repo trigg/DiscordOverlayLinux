@@ -130,10 +130,10 @@ class Overlay(QtCore.QObject):
         config.set('main','rightalign','%d' % (int(self.right)))
         with open(self.configFileName,'w') as file:
             config.write(file)
-        with open(self.fileName,'w') as file:
-            file.write(self.url)
-        self.settings.hide()
-        self.position.hide()
+        if self.url:
+            with open(self.fileName,'w') as file:
+                file.write(self.url)
+        
 
     @pyqtSlot()
     def on_click(self):
@@ -230,7 +230,7 @@ class Overlay(QtCore.QObject):
         self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
         self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
-        self.settingSave = QtWidgets.QPushButton("Save & Exit")
+        self.settingSave = QtWidgets.QPushButton("Save")
 
         self.settingsDistanceFromLeft.valueChanged[int].connect(self.changeValueFL)
         self.settingsDistanceFromLeft.setMaximum(self.size.width())
