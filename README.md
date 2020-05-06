@@ -13,6 +13,15 @@ Ubuntu/Debian:
 
 `sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine`
 
+
+## Installation
+
+Arch: 
+Grab it from the AUR: https://aur.archlinux.org/packages/discord-overlay-git
+
+Others:
+Download and run with Python3
+
 ## Usage
 
 On first launch a setup-window will appear. First choose either 'OBS' or 'XSplit'. There is no functional difference.
