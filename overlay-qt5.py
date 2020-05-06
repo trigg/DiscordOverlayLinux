@@ -27,9 +27,11 @@ class MyWindow(QtWidgets.QWidget):
         self.hide()
 
 class ResizingImage(QtWidgets.QLabel):
-    image = None
-    w=0
-    h=0
+    def __init__(self):
+        super().__init__()
+        self.image = None
+        self.w = 0
+        self.h = 0
 
     def setImage(self, image):
         self.image = image
@@ -72,14 +74,15 @@ class AspectRatioWidget(QtWidgets.QWidget):
         self.layout().setStretch(2, outer_stretch)
 
 class Overlay(QtCore.QObject):
-    configDir = os.path.join(xdg_config_home, "discord-overlay")
-    streamkitUrlFileName = ".config/discord-overlay/discordurl"
-    configFileName= ".config/discord-overlay/discoverlay.ini"
-    url = None
 
     def __init__(self,app):
         super().__init__()
         self.app = app
+        self.url = None
+
+        configDir =  os.path.join(xdg_config_home, "discord-overlay")
+        streamkitUrlFileName = os.path.join(configDir, "discordurl")
+        configFileName = os.path.join(configDir, "discoverlay.ini")
 
     def getInt(self, config, name, default):
         if config and config.has_option('main', name):
