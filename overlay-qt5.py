@@ -84,12 +84,6 @@ class Overlay(QtCore.QObject):
         streamkitUrlFileName = os.path.join(configDir, "discordurl")
         configFileName = os.path.join(configDir, "discoverlay.ini")
 
-    def getInt(self, config, name, default):
-        if config and config.has_option('main', name):
-            return config.getint('main', name)
-        else:
-            return default
-
     def main(self):
         # Get Screen dimensions
         screen = self.app.primaryScreen()
@@ -104,11 +98,11 @@ class Overlay(QtCore.QObject):
         if os.path.isfile(self.configFileName):
             config = ConfigParser()
             config.read(self.configFileName)
-        self.posXL=self.getInt(config, 'xl', 0)
-        self.posXR=self.getInt(config, 'xr', 200)
-        self.posYT=self.getInt(config, 'yt', 50)
-        self.posYB=self.getInt(config, 'yb', 450)
-        self.right=(self.getInt(config, 'rightalign', 0) == 1)
+        self.posXL=config.getint('xl', 0, fallback=0)
+        self.posXR=config.getint('xr', 0, fallback=200)
+        self.posYT=config.getint('yt', 0, fallback=50)
+        self.posYB=config.getint('yb', 0, fallback=450)
+        self.right=config.getboolean('main','rightalign', fallback=false)
 
         self.createOverlay()
         self.createSettingsWindow()
