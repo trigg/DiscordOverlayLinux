@@ -47,27 +47,38 @@ class ResizingImage(QtWidgets.QLabel):
             self.setPixmap(self.image.scaled(int(self.w), int(self.h),QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation))
 
 class AspectRatioWidget(QtWidgets.QWidget):
-    def __init__(self, widget, x,y,parent):
-        super().__init__(parent)
-        self.aspect_ratio = x / y
+    def __init__(self, widget):
+        super().__init__()
+        self.aspect_ratio = 1
         self.setLayout(QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight, self))
         #  add spacer, then widget, then spacer
         self.layout().addItem(QtWidgets.QSpacerItem(0, 0))
         self.layout().addWidget(widget)
         self.layout().addItem(QtWidgets.QSpacerItem(0, 0))
+        self.w = 0
+        self.h = 0
+
+    def updateScreen(self, x, y):
+        # A different screen with a different aspect ratio
+        self.aspect_ratio = x / y
+        self.changePadding()
 
     def resizeEvent(self, e):
-        w = e.size().width()
-        h = e.size().height()
+        self.w = e.size().width()
+        self.h = e.size().height()
+        self.changePadding()
 
-        if w / h > self.aspect_ratio:  # too wide
+    def changePadding(self):
+        if self.w < 1 or self.h < 1:
+            return
+        if self.w / self.h > self.aspect_ratio:  # too wide
             self.layout().setDirection(QtWidgets.QBoxLayout.LeftToRight)
-            widget_stretch = int(h * self.aspect_ratio)
-            outer_stretch =int( (w - widget_stretch) / 2 + 0.5 )
+            widget_stretch = int(self.h * self.aspect_ratio)
+            outer_stretch =int( (self.w - widget_stretch) / 2 + 0.5 )
         else:  # too tall
             self.layout().setDirection(QtWidgets.QBoxLayout.TopToBottom)
-            widget_stretch = int(w / self.aspect_ratio)
-            outer_stretch =int( (h - widget_stretch) / 2 + 0.5 )
+            widget_stretch = int(self.w / self.aspect_ratio)
+            outer_stretch =int( (self.h - widget_stretch) / 2 + 0.5 )
 
         self.layout().setStretch(0, outer_stretch)
         self.layout().setStretch(1, widget_stretch)
@@ -79,30 +90,28 @@ class Overlay(QtCore.QObject):
         super().__init__()
         self.app = app
         self.url = None
+        self.size = None
 
-        configDir =  os.path.join(xdg_config_home, "discord-overlay")
-        streamkitUrlFileName = os.path.join(configDir, "discordurl")
-        configFileName = os.path.join(configDir, "discoverlay.ini")
+        self.configDir =  os.path.join(xdg_config_home, "discord-overlay")
+        self.streamkitUrlFileName = os.path.join(self.configDir, "discordurl")
+        self.configFileName = os.path.join(self.configDir, "discoverlay.ini")
 
     def main(self):
-        # Get Screen dimensions
-        screen = self.app.primaryScreen()
-        self.size = screen.size()
         os.makedirs(self.configDir, exist_ok=True)
         try:
             with open(self.streamkitUrlFileName) as file:
                 self.url = file.readline().rstrip()
         except (OSError, IOError):
             self.url = None
-        config = None
-        if os.path.isfile(self.configFileName):
-            config = ConfigParser()
-            config.read(self.configFileName)
+        config = ConfigParser()
+        config.read(self.configFileName)
+        
         self.posXL=config.getint('xl', 0, fallback=0)
         self.posXR=config.getint('xr', 0, fallback=200)
         self.posYT=config.getint('yt', 0, fallback=50)
         self.posYB=config.getint('yb', 0, fallback=450)
-        self.right=config.getboolean('main','rightalign', fallback=false)
+        self.right=config.getboolean('main','rightalign', fallback=False)
+        self.screenName=config.get('main', 'screen', fallback='None')
 
         self.createOverlay()
         self.createSettingsWindow()
@@ -111,10 +120,11 @@ class Overlay(QtCore.QObject):
         if not self.url:
             self.settings.show()
             self.position.show()
+        self.moveOverlay()
 
     def moveOverlay(self):
         self.overlay.resize(self.posXR-self.posXL,self.posYB-self.posYT)
-        self.overlay.move(self.posXL,self.posYT)
+        self.overlay.move(self.posXL + self.screenOffset.left(),self.posYT + self.screenOffset.top())
 
     def on_url(self, url):
         self.overlay.load(QtCore.QUrl(url))
@@ -221,19 +231,7 @@ class Overlay(QtCore.QObject):
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.show()
 
-    def createPositionWindow(self):
-        self.position = MyWindow()
-        self.positionbox = QtWidgets.QVBoxLayout()
-        self.settingsGridWidget= QtWidgets.QWidget()
-        self.settingsAspectRatio = AspectRatioWidget(self.settingsGridWidget,self.size.width(), self.size.height(),None)
-        self.settingsGrid = QtWidgets.QGridLayout()
-        self.settingsPreview = ResizingImage()
-        self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
-        self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
-        self.settingSave = QtWidgets.QPushButton("Save")
-
+    def fillPositionWindowOptions(self):
         self.settingsDistanceFromLeft.valueChanged[int].connect(self.changeValueFL)
         self.settingsDistanceFromLeft.setMaximum(self.size.width())
         self.settingsDistanceFromLeft.setValue(self.posXL)
@@ -248,7 +246,79 @@ class Overlay(QtCore.QObject):
         self.settingsDistanceFromBottom.setMaximum(self.size.height())
         self.settingsDistanceFromBottom.setInvertedAppearance(True)
         self.settingsDistanceFromBottom.setValue(self.posYB)
+
+    def populateScreenList(self):
+        self.ignoreScreenComboBox = True
+        screenList = self.app.screens()
+        self.settingsScreen.clear()
+        i=0
+        for s in screenList:
+            self.settingsScreen.addItem(s.name())
+            if s.name == self.screenName:
+                self.settingsScreen.setCurrentIndex(i)
+            i=i+1
+        
+        self.ignoreScreenComboBox = False
+        self.chooseScreen()
+
+    def changeScreen(self, index):
+        if not self.ignoreScreenComboBox:
+            self.screenName = self.settingsScreen.currentText()
+            self.chooseScreen()
+
+    def chooseScreen(self):
+        screen = None
+        screenList = self.app.screens()
+        for s in screenList:
+            print(s.name())
+            if s.name() == self.screenName:
+                 screen = s
+                 break
+        # The chosen screen is not in this list. Drop to primary
+        if not screen:
+            screen = self.app.primaryScreen()
+
+        # Fill Info!
+        self.size = screen.size()
+        self.screenName = s.name()
+        self.screenOffset = screen.availableGeometry()
+        self.settingsAspectRatio.updateScreen(self.size.width(), self.size.height())
+        self.fillPositionWindowOptions()
+        self.moveOverlay()
+        self.screenShot(screen)
+
+    def createPositionWindow(self):
+        # Positional Settings Window
+        self.position = MyWindow()
+        self.positionbox = QtWidgets.QVBoxLayout()
+
+        # Use a grid to lay out screen & sliders
+        self.settingsGridWidget= QtWidgets.QWidget()
+        self.settingsGrid = QtWidgets.QGridLayout()
+
+        # Use the custom Aspect widget to keep the whole thing looking
+        # as close to the user experience as possible
+        self.settingsAspectRatio = AspectRatioWidget(self.settingsGridWidget)
+
+        # Grid contents
+        self.settingsPreview = ResizingImage()
+        self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
+        self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
+
+        # Screen chooser
+        self.settingsScreen = QtWidgets.QComboBox()
+
+#        self.position.setMinimumSize(600,600)
+        # Save button
+        self.settingSave = QtWidgets.QPushButton("Save")
+
+        # Fill Screens, Choose the screen if config is set
+        self.populateScreenList()
+
         self.settingSave.clicked.connect(self.save)
+        self.settingsScreen.currentIndexChanged.connect(self.changeScreen)
 
         self.settingsGrid.addWidget(self.settingsPreview,0,0)
         self.settingsGrid.addWidget(self.settingsDistanceFromLeft,1,0)
@@ -256,10 +326,10 @@ class Overlay(QtCore.QObject):
         self.settingsGrid.addWidget(self.settingsDistanceFromTop,0,1)
         self.settingsGrid.addWidget(self.settingsDistanceFromBottom,0,2)
         self.settingsGridWidget.setLayout(self.settingsGrid)
+        self.positionbox.addWidget(self.settingsScreen)
         self.positionbox.addWidget(self.settingsAspectRatio)
         self.position.setLayout(self.positionbox)
         self.positionbox.addWidget(self.settingSave)
-        self.screenShot()
 
     def createSettingsWindow(self):
         self.settings = MyWindow()
@@ -268,6 +338,7 @@ class Overlay(QtCore.QObject):
         self.rightAlign = QtWidgets.QCheckBox("Right Align")
         self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
         
+        self.settings.setMinimumSize(400,400)
         self.settingTakeUrl.clicked.connect(self.on_click)
         self.settingWebView.loadFinished.connect(self.skip_stream_button)
         self.rightAlign.stateChanged.connect(self.toggleRightAlign)
@@ -279,8 +350,7 @@ class Overlay(QtCore.QObject):
         self.settingsbox.addWidget(self.settingTakeUrl)
         self.settings.setLayout(self.settingsbox)
 
-    def screenShot(self):
-        screen = QtWidgets.QApplication.primaryScreen()
+    def screenShot(self, screen):
         screenshot = screen.grabWindow(0)
         self.settingsPreview.setImage(screenshot)
         self.settingsPreview.setContentsMargins(0,0,0,0)
@@ -304,7 +374,6 @@ class Overlay(QtCore.QObject):
         self.overlay.load(QtCore.QUrl(self.url))
 
         self.overlay.setStyleSheet("background:transparent;")
-        self.moveOverlay()
         self.overlay.show()
 
     def exit(self):
@@ -316,11 +385,11 @@ class Overlay(QtCore.QObject):
     def showPosition(self):
         self.position.show()
 
-def main():
-    app=QtWidgets.QApplication(sys.argv)
-    o = Overlay(app)
-    o.main()
-    app.exec_()
-
 if __name__ == '__main__':
-    main()
+    def main(app):
+        o = Overlay(app)
+        o.main()
+        app.exec()
+
+    app = QtWidgets.QApplication(sys.argv)
+    main(app)
