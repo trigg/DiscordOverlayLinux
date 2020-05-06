@@ -170,7 +170,7 @@ class Overlay(QtCore.QObject):
         self.runJS(hideClose)
 
     def enableMuteDeaf(self):
-        tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}console.log = function(text,input){if(typeof input !== 'undefined'){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}}else{console.oldlog(text);}};"
+        tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}console.log = function(text,input){if(typeof input !== 'undefined'){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\' style=\\'height:0.9em;\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\' style=\\'height:0.9em;\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}}else{console.oldlog(text);}};"
         self.overlay.page().runJavaScript(tweak)
 
     def runJS(self,string, retFunc=None):
@@ -350,7 +350,7 @@ class Overlay(QtCore.QObject):
         self.settingWebView = QWebEngineView()
         self.rightAlign = QtWidgets.QCheckBox("Right Align")
         self.muteDeaf = QtWidgets.QCheckBox("Show mute & Deafen")
-        self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
+        self.settingTakeUrl = QtWidgets.QPushButton("Save")
         
         self.settings.setMinimumSize(400,400)
         self.settingTakeUrl.clicked.connect(self.on_click)
