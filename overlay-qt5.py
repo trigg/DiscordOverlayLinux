@@ -197,6 +197,7 @@ class Overlay(QtCore.QObject):
 
     @pyqtSlot()
     def toggleMuteDeaf(self,button=None):
+        self.mutedeaf = self.muteDeaf.isChecked()
         if self.muteDeaf.isChecked():
             self.enableMuteDeaf()
 
