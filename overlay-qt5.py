@@ -116,7 +116,6 @@ class Overlay(QtCore.QObject):
             self.position.show()
 
     def moveOverlay(self):
-        print("%i %i, %i %i" % (self.posXL, self.posYT, self.posXR, self.posYB))
         self.overlay.resize(self.posXR-self.posXL,self.posYB-self.posYT)
         self.overlay.move(self.posXL,self.posYT)
 
