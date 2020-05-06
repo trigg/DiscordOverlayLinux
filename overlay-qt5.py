@@ -111,6 +111,7 @@ class Overlay(QtCore.QObject):
         self.posYT=config.getint('yt', 0, fallback=50)
         self.posYB=config.getint('yb', 0, fallback=450)
         self.right=config.getboolean('main','rightalign', fallback=False)
+        self.mutedeaf=config.getboolean('main','mutedeaf', fallback=False)
         self.screenName=config.get('main', 'screen', fallback='None')
 
         self.createOverlay()
@@ -140,10 +141,11 @@ class Overlay(QtCore.QObject):
         config.set('main','yt','%d'%(self.posYT))
         config.set('main','yb','%d'%(self.posYB))
         config.set('main','rightalign','%d' % (int(self.right)))
+        config.set('main','mutedeaf', '%d' % (int(self.mutedeaf)))
         with open(self.configFileName,'w') as file:
             config.write(file)
         if self.url:
-            with open(self.streamkitFileName,'w') as file:
+            with open(self.streamkitUrlFileName,'w') as file:
                 file.write(self.url)
         
 
@@ -167,6 +169,10 @@ class Overlay(QtCore.QObject):
         self.runJS(resizeHeader)
         self.runJS(hideClose)
 
+    def enableMuteDeaf(self):
+        tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}console.log = function(text,input){if(typeof input !== 'undefined'){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}}else{console.oldlog(text);}};"
+        self.overlay.page().runJavaScript(tweak)
+
     def runJS(self,string, retFunc=None):
         if retFunc:
             self.settingWebView.page().runJavaScript(string, retFunc)
@@ -178,14 +184,21 @@ class Overlay(QtCore.QObject):
             self.addCSS('cssrightalign','li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }');
         else:
             self.delCSS('cssrightalign')
+        if self.mutedeaf:
+            self.enableMuteDeaf()
 
     def addCSS(self,name,css):
         js = '(function() { css = document.createElement(\'style\');css.type=\'text/css\';css.id=\'%s\';document.head.appendChild(css);css.innerText=\'%s\';})()' % (name,css)
         self.overlay.page().runJavaScript(js)
 
     def delCSS(self,name):
-        js = "(function() { css = document.getElementById('%s'); css.parentNode.removeChild(css); })()" % (name)
+        js = "(function() { css = document.getElementById('%s'); if(css!=null){ css.parentNode.removeChild(css);} })()" % (name)
         self.overlay.page().runJavaScript(js)
+
+    @pyqtSlot()
+    def toggleMuteDeaf(self,button=None):
+        if self.muteDeaf.isChecked():
+            self.enableMuteDeaf()
 
     @pyqtSlot()
     def toggleRightAlign(self,button=None):
@@ -336,6 +349,7 @@ class Overlay(QtCore.QObject):
         self.settingsbox = QtWidgets.QVBoxLayout()
         self.settingWebView = QWebEngineView()
         self.rightAlign = QtWidgets.QCheckBox("Right Align")
+        self.muteDeaf = QtWidgets.QCheckBox("Show mute & Deafen")
         self.settingTakeUrl = QtWidgets.QPushButton("Use this overlay")
         
         self.settings.setMinimumSize(400,400)
@@ -343,10 +357,14 @@ class Overlay(QtCore.QObject):
         self.settingWebView.loadFinished.connect(self.skip_stream_button)
         self.rightAlign.stateChanged.connect(self.toggleRightAlign)
         self.rightAlign.setChecked(self.right)
+        self.muteDeaf.stateChanged.connect(self.toggleMuteDeaf)
+        self.muteDeaf.setChecked(self.mutedeaf)
+      
         self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
 
         self.settingsbox.addWidget(self.settingWebView)
         self.settingsbox.addWidget(self.rightAlign)
+        self.settingsbox.addWidget(self.muteDeaf)
         self.settingsbox.addWidget(self.settingTakeUrl)
         self.settings.setLayout(self.settingsbox)
 
