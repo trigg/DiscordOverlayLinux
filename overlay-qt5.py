@@ -19,6 +19,7 @@ from PyQt5 import QtWidgets,QtGui,QtCore
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import *
 from pathlib import Path
+from xdg.BaseDirectory import xdg_config_home
 
 class MyWindow(QtWidgets.QWidget):
     def closeEvent(self,data):
@@ -29,6 +30,7 @@ class ResizingImage(QtWidgets.QLabel):
     image = None
     w=0
     h=0
+
     def setImage(self, image):
         self.image = image
         self.fillImage()
@@ -70,9 +72,14 @@ class AspectRatioWidget(QtWidgets.QWidget):
         self.layout().setStretch(2, outer_stretch)
 
 class Overlay(QtCore.QObject):
-    fileName = ".config/discord-overlay/discordurl"
+    configDir = os.path.join(xdg_config_home, "discord-overlay")
+    streamkitUrlFileName = ".config/discord-overlay/discordurl"
     configFileName= ".config/discord-overlay/discoverlay.ini"
     url = None
+
+    def __init__(self,app):
+        super().__init__()
+        self.app = app
 
     def getInt(self, config, name, default):
         if config and config.has_option('main', name):
@@ -82,15 +89,14 @@ class Overlay(QtCore.QObject):
 
     def main(self):
         # Get Screen dimensions
-        screen = app.primaryScreen()
+        screen = self.app.primaryScreen()
         self.size = screen.size()
-        #Check for existing Dir
-        if not os.path.exists(".config/discord-overlay/"):
-            os.makedirs(".config/discord-overlay/")
-            
-        if os.path.isfile(self.fileName):
-            with open(self.fileName) as file:
+        os.makedirs(self.configDir, exist_ok=True)
+        try:
+            with open(self.streamkitUrlFileName) as file:
                 self.url = file.readline().rstrip()
+        except (OSError, IOError):
+            self.url = None
         config = None
         if os.path.isfile(self.configFileName):
             config = ConfigParser()
@@ -131,7 +137,7 @@ class Overlay(QtCore.QObject):
         with open(self.configFileName,'w') as file:
             config.write(file)
         if self.url:
-            with open(self.fileName,'w') as file:
+            with open(self.streamkitFileName,'w') as file:
                 file.write(self.url)
         
 
@@ -208,7 +214,7 @@ class Overlay(QtCore.QObject):
         pm = QtGui.QPixmap()
         pm.loadFromData(base64.b64decode(self.trayImgBase64))
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(pm), app)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(pm), self.app)
         self.trayMenu = QtWidgets.QMenu()
         self.showAction = self.trayMenu.addAction("Change Style")
         self.showAction.triggered.connect(self.showSettings)
@@ -306,7 +312,7 @@ class Overlay(QtCore.QObject):
         self.overlay.show()
 
     def exit(self):
-        app.quit()
+        self.app.quit()
 
     def showSettings(self):
         self.settings.show()
@@ -314,8 +320,11 @@ class Overlay(QtCore.QObject):
     def showPosition(self):
         self.position.show()
 
-os.chdir(Path.home())
-app=QtWidgets.QApplication(sys.argv)
-o = Overlay()
-o.main()
-app.exec_()
+def main():
+    app=QtWidgets.QApplication(sys.argv)
+    o = Overlay(app)
+    o.main()
+    app.exec_()
+
+if __name__ == '__main__':
+    main()
