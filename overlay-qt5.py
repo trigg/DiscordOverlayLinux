@@ -46,6 +46,9 @@ class ResizingImage(QtWidgets.QLabel):
         self.h= e.size().height()
         self.fillImage()
 
+    def sizeHint(self):
+        return QtCore.QSize(self.image.width() // 2, self.image.height() // 2)
+
     def fillImage(self):
         if self.image and self.w>0 and self.h>0:
             self.setPixmap(self.image.scaled(int(self.w), int(self.h),QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation))
@@ -332,6 +335,9 @@ class Overlay(QtCore.QObject):
 
         # Grid contents
         self.settingsPreview = ResizingImage()
+        self.settingsPreview.setMinimumSize(1, 1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.settingsPreview.setSizePolicy(sizePolicy)
         self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
