@@ -202,6 +202,7 @@ class Overlay(QtCore.QObject):
             self.delCSS('cssrightalign')
         if self.mutedeaf:
             self.enableMuteDeaf()
+        self.addCSS('cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
 
     def addCSS(self,name,css):
         js = '(function() { css = document.createElement(\'style\');css.type=\'text/css\';css.id=\'%s\';document.head.appendChild(css);css.innerText=\'%s\';})()' % (name,css)
