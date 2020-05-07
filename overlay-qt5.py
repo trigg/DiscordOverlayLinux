@@ -146,6 +146,8 @@ class Overlay(QtCore.QObject):
         config.set('main','yb','%d'%(self.posYB))
         config.set('main','rightalign','%d' % (int(self.right)))
         config.set('main','mutedeaf', '%d' % (int(self.mutedeaf)))
+        config.set('main', 'screen', self.screenName)
+
         with open(self.configFileName,'w') as file:
             config.write(file)
         if self.url:
