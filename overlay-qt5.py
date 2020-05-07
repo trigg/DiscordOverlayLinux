@@ -13,6 +13,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  
 import sys
 import os
+import logging
 import base64
 from configparser import ConfigParser
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -20,6 +21,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import *
 from pathlib import Path
 from xdg.BaseDirectory import xdg_config_home
+
+logger = logging.getLogger(__name__)
+
 
 class MyWindow(QtWidgets.QWidget):
     def closeEvent(self,data):
@@ -41,6 +45,9 @@ class ResizingImage(QtWidgets.QLabel):
         self.w= e.size().width()
         self.h= e.size().height()
         self.fillImage()
+
+    def sizeHint(self):
+        return QtCore.QSize(self.image.width() // 2, self.image.height() // 2)
 
     def fillImage(self):
         if self.image and self.w>0 and self.h>0:
@@ -105,11 +112,11 @@ class Overlay(QtCore.QObject):
             self.url = None
         config = ConfigParser()
         config.read(self.configFileName)
-        
-        self.posXL=config.getint('xl', 0, fallback=0)
-        self.posXR=config.getint('xr', 0, fallback=200)
-        self.posYT=config.getint('yt', 0, fallback=50)
-        self.posYB=config.getint('yb', 0, fallback=450)
+
+        self.posXL=config.getint('main', 'xl', fallback=0)
+        self.posXR=config.getint('main', 'xr', fallback=200)
+        self.posYT=config.getint('main', 'yt', fallback=50)
+        self.posYB=config.getint('main', 'yb', fallback=450)
         self.right=config.getboolean('main','rightalign', fallback=False)
         self.mutedeaf=config.getboolean('main','mutedeaf', fallback=False)
         self.screenName=config.get('main', 'screen', fallback='None')
@@ -142,6 +149,8 @@ class Overlay(QtCore.QObject):
         config.set('main','yb','%d'%(self.posYB))
         config.set('main','rightalign','%d' % (int(self.right)))
         config.set('main','mutedeaf', '%d' % (int(self.mutedeaf)))
+        config.set('main', 'screen', self.screenName)
+
         with open(self.configFileName,'w') as file:
             config.write(file)
         if self.url:
@@ -272,13 +281,11 @@ class Overlay(QtCore.QObject):
         self.ignoreScreenComboBox = True
         screenList = self.app.screens()
         self.settingsScreen.clear()
-        i=0
-        for s in screenList:
+        for i, s in enumerate(screenList):
             self.settingsScreen.addItem(s.name())
-            if s.name == self.screenName:
+            if s.name() == self.screenName:
                 self.settingsScreen.setCurrentIndex(i)
-            i=i+1
-        
+
         self.ignoreScreenComboBox = False
         self.chooseScreen()
 
@@ -290,14 +297,17 @@ class Overlay(QtCore.QObject):
     def chooseScreen(self):
         screen = None
         screenList = self.app.screens()
+        logger.debug("Discovered screens: %r", [s.name() for s in screenList])
+
         for s in screenList:
-            print(s.name())
             if s.name() == self.screenName:
                  screen = s
+                 logger.debug("Chose screen %s", screen.name())
                  break
         # The chosen screen is not in this list. Drop to primary
-        if not screen:
+        else:
             screen = self.app.primaryScreen()
+            logger.warning("Chose screen %r as fallback because %r could not be matched", screen.name(), self.screenName)
 
         # Fill Info!
         self.size = screen.size()
@@ -323,6 +333,9 @@ class Overlay(QtCore.QObject):
 
         # Grid contents
         self.settingsPreview = ResizingImage()
+        self.settingsPreview.setMinimumSize(1, 1)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.settingsPreview.setSizePolicy(sizePolicy)
         self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
@@ -413,6 +426,12 @@ class Overlay(QtCore.QObject):
 
 if __name__ == '__main__':
     def main(app):
+        logging.basicConfig(format='%(asctime)-15s %(levelname)-8s %(message)s')
+        try:
+            logging.getLogger().setLevel(os.environ.get("LOGLEVEL", "INFO").upper())
+        except ValueError as exc:
+            logger.warning("Can't set log level: %s", exc)
+
         o = Overlay(app)
         o.main()
         app.exec()
