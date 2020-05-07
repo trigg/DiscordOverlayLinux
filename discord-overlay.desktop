@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Discord Overlay
+Comment=Display discord information above desktop and games
+Exec=/usr/bin/discord-overlay
+Icon=discord-overlay
+Terminal=false
+Type=Application
+Catergories=Network;
