@@ -281,13 +281,11 @@ class Overlay(QtCore.QObject):
         self.ignoreScreenComboBox = True
         screenList = self.app.screens()
         self.settingsScreen.clear()
-        i=0
-        for s in screenList:
+        for i, s in enumerate(screenList):
             self.settingsScreen.addItem(s.name())
             if s.name() == self.screenName:
                 self.settingsScreen.setCurrentIndex(i)
-            i=i+1
-        
+
         self.ignoreScreenComboBox = False
         self.chooseScreen()
 
