@@ -105,11 +105,11 @@ class Overlay(QtCore.QObject):
             self.url = None
         config = ConfigParser()
         config.read(self.configFileName)
-        
-        self.posXL=config.getint('xl', 0, fallback=0)
-        self.posXR=config.getint('xr', 0, fallback=200)
-        self.posYT=config.getint('yt', 0, fallback=50)
-        self.posYB=config.getint('yb', 0, fallback=450)
+
+        self.posXL=config.getint('main', 'xl', fallback=0)
+        self.posXR=config.getint('main', 'xr', fallback=200)
+        self.posYT=config.getint('main', 'yt', fallback=50)
+        self.posYB=config.getint('main', 'yb', fallback=450)
         self.right=config.getboolean('main','rightalign', fallback=False)
         self.mutedeaf=config.getboolean('main','mutedeaf', fallback=False)
         self.screenName=config.get('main', 'screen', fallback='None')
