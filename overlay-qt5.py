@@ -284,7 +284,7 @@ class Overlay(QtCore.QObject):
         i=0
         for s in screenList:
             self.settingsScreen.addItem(s.name())
-            if s.name == self.screenName:
+            if s.name() == self.screenName:
                 self.settingsScreen.setCurrentIndex(i)
             i=i+1
         
