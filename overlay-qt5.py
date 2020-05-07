@@ -13,6 +13,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.  
 import sys
 import os
+import logging
 import base64
 from configparser import ConfigParser
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -20,6 +21,9 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import *
 from pathlib import Path
 from xdg.BaseDirectory import xdg_config_home
+
+logger = logging.getLogger(__name__)
+
 
 class MyWindow(QtWidgets.QWidget):
     def closeEvent(self,data):
@@ -290,14 +294,17 @@ class Overlay(QtCore.QObject):
     def chooseScreen(self):
         screen = None
         screenList = self.app.screens()
+        logger.debug("Discovered screens: %r", [s.name() for s in screenList])
+
         for s in screenList:
-            print(s.name())
             if s.name() == self.screenName:
                  screen = s
+                 logger.debug("Chose screen %s", screen.name())
                  break
         # The chosen screen is not in this list. Drop to primary
-        if not screen:
+        else:
             screen = self.app.primaryScreen()
+            logger.warning("Chose screen %r as fallback because %r could not be matched", screen.name(), self.screenName)
 
         # Fill Info!
         self.size = screen.size()
@@ -413,6 +420,12 @@ class Overlay(QtCore.QObject):
 
 if __name__ == '__main__':
     def main(app):
+        logging.basicConfig(format='%(asctime)-15s %(levelname)-8s %(message)s')
+        try:
+            logging.getLogger().setLevel(os.environ.get("LOGLEVEL", "INFO").upper())
+        except ValueError as exc:
+            logger.warning("Can't set log level: %s", exc)
+
         o = Overlay(app)
         o.main()
         app.exec()
