@@ -119,6 +119,7 @@ class Overlay(QtCore.QObject):
         self.posYB=config.getint('main', 'yb', fallback=450)
         self.right=config.getboolean('main','rightalign', fallback=False)
         self.mutedeaf=config.getboolean('main','mutedeaf', fallback=False)
+        self.chatresize=config.getboolean('main','chatresize', fallback=False)
         self.screenName=config.get('main', 'screen', fallback='None')
 
         self.createOverlay()
@@ -149,6 +150,7 @@ class Overlay(QtCore.QObject):
         config.set('main','yb','%d'%(self.posYB))
         config.set('main','rightalign','%d' % (int(self.right)))
         config.set('main','mutedeaf', '%d' % (int(self.mutedeaf)))
+        config.set('main','chatresize', '%d' % (int(self.chatresize)))
         config.set('main', 'screen', self.screenName)
 
         with open(self.configFileName,'w') as file:
@@ -202,7 +204,10 @@ class Overlay(QtCore.QObject):
             self.delCSS('cssrightalign')
         if self.mutedeaf:
             self.enableMuteDeaf()
-        self.addCSS('cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
+        if self.chatresize:
+            self.addCSS('cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
+        else:
+            self.delCSS('cssflexybox')
 
     def addCSS(self,name,css):
         js = '(function() { css = document.createElement(\'style\');css.type=\'text/css\';css.id=\'%s\';document.head.appendChild(css);css.innerText=\'%s\';})()' % (name,css)
@@ -219,11 +224,13 @@ class Overlay(QtCore.QObject):
             self.enableMuteDeaf()
 
     @pyqtSlot()
+    def toggleChatResize(self, button=None):
+        self.chatresize=self.chatResize.isChecked()
+        self.applyTweaks()
+
+    @pyqtSlot()
     def toggleRightAlign(self,button=None):
-        if self.rightAlign.isChecked():
-            self.right=True
-        else:
-            self.right=False
+        self.right=self.rightAlign.isChecked()
         self.applyTweaks()
 
     @pyqtSlot()
@@ -372,6 +379,7 @@ class Overlay(QtCore.QObject):
         self.settingWebView = QWebEngineView()
         self.rightAlign = QtWidgets.QCheckBox("Right Align")
         self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
+        self.chatResize = QtWidgets.QCheckBox("Large chat box")
         self.settingTakeUrl = QtWidgets.QPushButton("Save")
         
         self.settings.setMinimumSize(400,400)
@@ -381,12 +389,15 @@ class Overlay(QtCore.QObject):
         self.rightAlign.setChecked(self.right)
         self.muteDeaf.stateChanged.connect(self.toggleMuteDeaf)
         self.muteDeaf.setChecked(self.mutedeaf)
+        self.chatResize.stateChanged.connect(self.toggleChatResize)
+        self.chatResize.setChecked(self.chatresize)
       
         self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
 
         self.settingsbox.addWidget(self.settingWebView)
         self.settingsbox.addWidget(self.rightAlign)
         self.settingsbox.addWidget(self.muteDeaf)
+        self.settingsbox.addWidget(self.chatResize)
         self.settingsbox.addWidget(self.settingTakeUrl)
         self.settings.setLayout(self.settingsbox)
 
