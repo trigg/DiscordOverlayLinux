@@ -15,6 +15,7 @@ import sys
 import os
 import logging
 import base64
+import re
 from configparser import ConfigParser
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtSlot
@@ -119,21 +120,14 @@ class App(QtCore.QObject):
             self.overlays.append(overlay)
         self.app.setQuitOnLastWindowClosed(False)
         self.createSysTrayIcon()
-        # TODO REMOVE CRUTCH
-        for overlay in self.overlays:
-            overlay.showOverlay()
 
     def createSysTrayIcon(self):
-        self.trayImgBase64 = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AUEDxsTIFcmagAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAN+SURBVFjDzZcxaCJpGIafmTuyisVgsDCJiyApR3FAokmjsT5juuC0l2BzjVyfwv5Ic43EW0ijWCb2JtMEZxFGximDMKzhLIaYKcK4zeaKM8ux5A5vN8Pmbef/53t4v3/+eT+B5fUGSAKbwAawCgQXzzzgDrgFboAR8HGZlwpLrFkD8sBWo9EQ0+k0sViMcDhMIBAAYD6fM5vNmEwmDIdDqtXqJ+A9oAF/fgvAXqFQKB4fH5PL5ZhOp1iWhWmaGIaBYRgAKIqCoiikUilkWSYajdLv96nX61xdXfWAi/8LsAao7Xb7bblcxrIsWq0WkiSRz+dJJBJEIhGCwb874HkejuMwHo/RNA3XdVFVFVmWOT8/p1KpfABaz7nxHEAC+FnX9VA8HqfZbCJJEqVSiXg8vtRhsW2bbreL67ocHh5i2zbZbPYB+AMY/xfAGvDLaDQKCYLA3t4enU6HTCbD12gwGHBwcMDFxQWPj48kk8kH4Pd/OiF+sUfVdT0kCAK1Wo1er/fVxQEymQy9Xo9arYYgCOi6HgLUf3Ngr91uF3d3d9nZ2aHX6y1t+TItKRaLXF9fc3l5SaVS+XwwnxxYKxQKxXK5TLPZpNPpvFhxgHg8TqfTodlsUi6XKRQKxUW7+WGx5qd3797F7u/vcRyH/f19Xlrr6+uYpsnKygrb29ucnZ39CFji4obbyuVytFotSqUSfqlUKtFqtcjlcgBbwBsRSDYaDXE6nSJJ0ota/1wrJEliOp3SaDREICkCm+l0GsuyyOfz+K18Po9lWaTTaYBNEdiIxWKYpkkikfAdIJFIYJomsVgMYEMEVsPhMIZhEIlEfAeIRCIYhkE4HAZYFYFgIBDAMIzPd7ufCgaDGIbx9CcNinxniYA3n89RFAXP83wv6HkeiqIwn88BPBG4m81mKIqC4zi+AziOg6IozGYzgDsRuJ1MJqRSKcbjse8A4/GYVCrFZDIBuBWBm+FwiCzLaJrmO4CmaciyzHA4BLgRgVG1Wv0UjUZxXRfbtn0rbts2rusSjUafcuNIXKTX9/1+H1VV6Xa7vgF0u11UVaXf77MIrR+fPkOtXq8jyzKu6zIYDF68+GAwwHVdZFmmXq+zSMzfP5B8mQl/1XX9bSgUolarcXp6+s0Qtm1zdHTEyckJDw8PZLPZD8BvryaUvrpY/ioGk1cxmr2a4dT38fwv9cLeiMwLuMsAAAAASUVORK5CYII="
+        trayImgBase64 = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AUEDxsTIFcmagAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAN+SURBVFjDzZcxaCJpGIafmTuyisVgsDCJiyApR3FAokmjsT5juuC0l2BzjVyfwv5Ic43EW0ijWCb2JtMEZxFGximDMKzhLIaYKcK4zeaKM8ux5A5vN8Pmbef/53t4v3/+eT+B5fUGSAKbwAawCgQXzzzgDrgFboAR8HGZlwpLrFkD8sBWo9EQ0+k0sViMcDhMIBAAYD6fM5vNmEwmDIdDqtXqJ+A9oAF/fgvAXqFQKB4fH5PL5ZhOp1iWhWmaGIaBYRgAKIqCoiikUilkWSYajdLv96nX61xdXfWAi/8LsAao7Xb7bblcxrIsWq0WkiSRz+dJJBJEIhGCwb874HkejuMwHo/RNA3XdVFVFVmWOT8/p1KpfABaz7nxHEAC+FnX9VA8HqfZbCJJEqVSiXg8vtRhsW2bbreL67ocHh5i2zbZbPYB+AMY/xfAGvDLaDQKCYLA3t4enU6HTCbD12gwGHBwcMDFxQWPj48kk8kH4Pd/OiF+sUfVdT0kCAK1Wo1er/fVxQEymQy9Xo9arYYgCOi6HgLUf3Ngr91uF3d3d9nZ2aHX6y1t+TItKRaLXF9fc3l5SaVS+XwwnxxYKxQKxXK5TLPZpNPpvFhxgHg8TqfTodlsUi6XKRQKxUW7+WGx5qd3797F7u/vcRyH/f19Xlrr6+uYpsnKygrb29ucnZ39CFji4obbyuVytFotSqUSfqlUKtFqtcjlcgBbwBsRSDYaDXE6nSJJ0ota/1wrJEliOp3SaDREICkCm+l0GsuyyOfz+K18Po9lWaTTaYBNEdiIxWKYpkkikfAdIJFIYJomsVgMYEMEVsPhMIZhEIlEfAeIRCIYhkE4HAZYFYFgIBDAMIzPd7ufCgaDGIbx9CcNinxniYA3n89RFAXP83wv6HkeiqIwn88BPBG4m81mKIqC4zi+AziOg6IozGYzgDsRuJ1MJqRSKcbjse8A4/GYVCrFZDIBuBWBm+FwiCzLaJrmO4CmaciyzHA4BLgRgVG1Wv0UjUZxXRfbtn0rbts2rusSjUafcuNIXKTX9/1+H1VV6Xa7vgF0u11UVaXf77MIrR+fPkOtXq8jyzKu6zIYDF68+GAwwHVdZFmmXq+zSMzfP5B8mQl/1XX9bSgUolarcXp6+s0Qtm1zdHTEyckJDw8PZLPZD8BvryaUvrpY/ioGk1cxmr2a4dT38fwv9cLeiMwLuMsAAAAASUVORK5CYII="
         pm = QtGui.QPixmap()
-        pm.loadFromData(base64.b64decode(self.trayImgBase64))
+        pm.loadFromData(base64.b64decode(trayImgBase64))
 
         self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(pm), self.app)
         self.trayMenu = QtWidgets.QMenu()
-        self.showAction = self.trayMenu.addAction("Change Style")
-        self.showAction.triggered.connect(self.showSettings)
-        self.showAction2 = self.trayMenu.addAction("Change Position")
-        self.showAction2.triggered.connect(self.showPosition)
         self.showAction3 = self.trayMenu.addAction("Settings")
         self.showAction3.triggered.connect(self.showPresetWindow)
         self.exitAction = self.trayMenu.addAction("Close")
@@ -144,6 +138,10 @@ class App(QtCore.QObject):
     def showPresetWindow(self):
         self.presets = QtWidgets.QMainWindow()
         self.presets.setWindowTitle('Configure overlays')
+        self.fillPresetWindow()
+        self.presets.show()
+
+    def fillPresetWindow(self):
         gridW = QtWidgets.QWidget()
         grid = QtWidgets.QGridLayout()
         gridW.setLayout(grid)
@@ -159,22 +157,29 @@ class App(QtCore.QObject):
             grid.addWidget(buttonSettings, count, 1)
             grid.addWidget(buttonPosition, count, 2)
             count = count+1
-
+        addOverlayButton = QtWidgets.QPushButton('Add overlay')
+        addOverlayButton.clicked.connect(self.addOverlay)
+        addOverlayButton.setMaximumWidth(150)
+        self.textbox = QtWidgets.QLineEdit()
+        self.textbox.setMaximumWidth(150)
+        self.textbox.setPlaceholderText('overlayName')
+        grid.addWidget(addOverlayButton, count, 2)
+        grid.addWidget(self.textbox, count, 1)
         self.presets.setCentralWidget(gridW)
-        self.presets.show()
+
+    def addOverlay(self, button=None):
+        if re.match('^[a-z]+$', self.textbox.text()):
+            overlay = Overlay(self.app, self.configFileName,
+                              self.textbox.text())
+            overlay.load()
+            self.overlays.append(overlay)
+            self.fillPresetWindow()
+        else:
+            error_dialog = QtWidgets.QErrorMessage()
+            error_dialog.showMessage('Please use only a-z in overlay names')
 
     def exit(self):
         self.app.quit()
-
-    def showPosition(self):
-        # TODO REMOVE THIS CRUTCH
-        for overlay in self.overlays:
-            overlay.showPosition()
-
-    def showSettings(self):
-        # TODO REMOVE THIS CRUTCH
-        for overlay in self.overlays:
-            overlay.showSettings()
 
 
 class Overlay(QtCore.QObject):
@@ -189,6 +194,7 @@ class Overlay(QtCore.QObject):
         self.overlay = None
         self.settings = None
         self.position = None
+        self.enabled = False
 
     def load(self):
         config = ConfigParser(interpolation=None)
@@ -204,16 +210,11 @@ class Overlay(QtCore.QObject):
             'main', 'chatresize', fallback=False)
         self.screenName = config.get(self.name, 'screen', fallback='None')
         self.url = config.get(self.name, 'url', fallback=None)
+        self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
         self.chooseScreen()
-
-        # self.createOverlay()
-        # self.createSettingsWindow()
-        # self.createPositionWindow()
-        # self.createSysTrayIcon()
-        # if not self.url:
-        #    self.settings.show()
-        #    self.position.show()
-        # self.moveOverlay()
+        # TODO Check, is there a better logic location for this?
+        if self.enabled:
+            self.showOverlay()
 
     def moveOverlay(self):
         if self.overlay:
@@ -248,7 +249,9 @@ class Overlay(QtCore.QObject):
         config.set(self.name, 'mutedeaf', '%d' % (int(self.mutedeaf)))
         config.set(self.name, 'chatresize', '%d' % (int(self.chatresize)))
         config.set(self.name, 'screen', self.screenName)
-        config.set(self.name, 'url', self.url)
+        config.set(self.name, 'enabled', '%d' % (int(self.enabled)))
+        if self.url:
+            config.set(self.name, 'url', self.url)
         with open(self.configFileName, 'w') as file:
             config.write(file)
 
@@ -315,6 +318,14 @@ class Overlay(QtCore.QObject):
             js = "(function() { css = document.getElementById('%s'); if(css!=null){ css.parentNode.removeChild(css);} })()" % (
                 name)
             self.overlay.page().runJavaScript(js)
+
+    @pyqtSlot()
+    def toggleEnabled(self, button=None):
+        self.enabled = self.enabledButton.isChecked()
+        if self.enabled:
+            self.showOverlay()
+        else:
+            self.hideOverlay()
 
     @pyqtSlot()
     def toggleMuteDeaf(self, button=None):
@@ -482,6 +493,7 @@ class Overlay(QtCore.QObject):
             self.rightAlign = QtWidgets.QCheckBox("Right Align")
             self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
             self.chatResize = QtWidgets.QCheckBox("Large chat box")
+            self.enabledButton = QtWidgets.QCheckBox("Enabled")
             self.settingTakeUrl = QtWidgets.QPushButton("Save")
 
             self.settings.setMinimumSize(400, 400)
@@ -491,6 +503,8 @@ class Overlay(QtCore.QObject):
             self.rightAlign.setChecked(self.right)
             self.muteDeaf.stateChanged.connect(self.toggleMuteDeaf)
             self.muteDeaf.setChecked(self.mutedeaf)
+            self.enabledButton.stateChanged.connect(self.toggleEnabled)
+            self.enabledButton.setChecked(self.enabled)
             self.chatResize.stateChanged.connect(self.toggleChatResize)
             self.chatResize.setChecked(self.chatresize)
 
@@ -501,6 +515,7 @@ class Overlay(QtCore.QObject):
             self.settingsbox.addWidget(self.rightAlign)
             self.settingsbox.addWidget(self.muteDeaf)
             self.settingsbox.addWidget(self.chatResize)
+            self.settingsbox.addWidget(self.enabledButton)
             self.settingsbox.addWidget(self.settingTakeUrl)
             self.settings.setLayout(self.settingsbox)
             self.settings.show()
