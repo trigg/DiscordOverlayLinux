@@ -10,15 +10,15 @@
 #    GNU General Public License for more details.
 #
 #    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.  
+#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 import os
 import logging
 import base64
 from configparser import ConfigParser
-from PyQt5 import QtWidgets,QtGui,QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWebEngineWidgets import *
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from pathlib import Path
 from xdg.BaseDirectory import xdg_config_home
 
@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 class MyWindow(QtWidgets.QWidget):
-    def closeEvent(self,data):
+    def closeEvent(self, data=None):
         # Don't close settings, only hide it
         self.hide()
+
 
 class ResizingImage(QtWidgets.QLabel):
     def __init__(self):
@@ -41,23 +42,26 @@ class ResizingImage(QtWidgets.QLabel):
         self.image = image
         self.fillImage()
 
-    def resizeEvent(self,e):
-        self.w= e.size().width()
-        self.h= e.size().height()
+    def resizeEvent(self, e):
+        self.w = e.size().width()
+        self.h = e.size().height()
         self.fillImage()
 
     def sizeHint(self):
         return QtCore.QSize(self.image.width() // 2, self.image.height() // 2)
 
     def fillImage(self):
-        if self.image and self.w>0 and self.h>0:
-            self.setPixmap(self.image.scaled(int(self.w), int(self.h),QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation))
+        if self.image and self.w > 0 and self.h > 0:
+            self.setPixmap(self.image.scaled(int(self.w), int(
+                self.h), QtCore.Qt.IgnoreAspectRatio, QtCore.Qt.SmoothTransformation))
+
 
 class AspectRatioWidget(QtWidgets.QWidget):
     def __init__(self, widget):
         super().__init__()
         self.aspect_ratio = 1
-        self.setLayout(QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.LeftToRight, self))
+        self.setLayout(QtWidgets.QBoxLayout(
+            QtWidgets.QBoxLayout.LeftToRight, self))
         #  add spacer, then widget, then spacer
         self.layout().addItem(QtWidgets.QSpacerItem(0, 0))
         self.layout().addWidget(widget)
@@ -81,25 +85,26 @@ class AspectRatioWidget(QtWidgets.QWidget):
         if self.w / self.h > self.aspect_ratio:  # too wide
             self.layout().setDirection(QtWidgets.QBoxLayout.LeftToRight)
             widget_stretch = int(self.h * self.aspect_ratio)
-            outer_stretch =int( (self.w - widget_stretch) / 2 + 0.5 )
+            outer_stretch = int((self.w - widget_stretch) / 2 + 0.5)
         else:  # too tall
             self.layout().setDirection(QtWidgets.QBoxLayout.TopToBottom)
             widget_stretch = int(self.w / self.aspect_ratio)
-            outer_stretch =int( (self.h - widget_stretch) / 2 + 0.5 )
+            outer_stretch = int((self.h - widget_stretch) / 2 + 0.5)
 
         self.layout().setStretch(0, outer_stretch)
         self.layout().setStretch(1, widget_stretch)
         self.layout().setStretch(2, outer_stretch)
 
+
 class Overlay(QtCore.QObject):
 
-    def __init__(self,app):
+    def __init__(self, our_app):
         super().__init__()
-        self.app = app
+        self.app = our_app
         self.url = None
         self.size = None
 
-        self.configDir =  os.path.join(xdg_config_home, "discord-overlay")
+        self.configDir = os.path.join(xdg_config_home, "discord-overlay")
         self.streamkitUrlFileName = os.path.join(self.configDir, "discordurl")
         self.configFileName = os.path.join(self.configDir, "discoverlay.ini")
 
@@ -113,14 +118,15 @@ class Overlay(QtCore.QObject):
         config = ConfigParser()
         config.read(self.configFileName)
 
-        self.posXL=config.getint('main', 'xl', fallback=0)
-        self.posXR=config.getint('main', 'xr', fallback=200)
-        self.posYT=config.getint('main', 'yt', fallback=50)
-        self.posYB=config.getint('main', 'yb', fallback=450)
-        self.right=config.getboolean('main','rightalign', fallback=False)
-        self.mutedeaf=config.getboolean('main','mutedeaf', fallback=False)
-        self.chatresize=config.getboolean('main','chatresize', fallback=False)
-        self.screenName=config.get('main', 'screen', fallback='None')
+        self.posXL = config.getint('main', 'xl', fallback=0)
+        self.posXR = config.getint('main', 'xr', fallback=200)
+        self.posYT = config.getint('main', 'yt', fallback=50)
+        self.posYB = config.getint('main', 'yb', fallback=450)
+        self.right = config.getboolean('main', 'rightalign', fallback=False)
+        self.mutedeaf = config.getboolean('main', 'mutedeaf', fallback=False)
+        self.chatresize = config.getboolean(
+            'main', 'chatresize', fallback=False)
+        self.screenName = config.get('main', 'screen', fallback='None')
 
         self.createOverlay()
         self.createSettingsWindow()
@@ -132,8 +138,9 @@ class Overlay(QtCore.QObject):
         self.moveOverlay()
 
     def moveOverlay(self):
-        self.overlay.resize(self.posXR-self.posXL,self.posYB-self.posYT)
-        self.overlay.move(self.posXL + self.screenOffset.left(),self.posYT + self.screenOffset.top())
+        self.overlay.resize(self.posXR-self.posXL, self.posYB-self.posYT)
+        self.overlay.move(self.posXL + self.screenOffset.left(),
+                          self.posYT + self.screenOffset.top())
 
     def on_url(self, url):
         self.overlay.load(QtCore.QUrl(url))
@@ -144,25 +151,25 @@ class Overlay(QtCore.QObject):
     def save(self):
         config = ConfigParser()
         config.add_section('main')
-        config.set('main','xl','%d'%(self.posXL))
-        config.set('main','xr','%d'%(self.posXR))
-        config.set('main','yt','%d'%(self.posYT))
-        config.set('main','yb','%d'%(self.posYB))
-        config.set('main','rightalign','%d' % (int(self.right)))
-        config.set('main','mutedeaf', '%d' % (int(self.mutedeaf)))
-        config.set('main','chatresize', '%d' % (int(self.chatresize)))
+        config.set('main', 'xl', '%d' % (self.posXL))
+        config.set('main', 'xr', '%d' % (self.posXR))
+        config.set('main', 'yt', '%d' % (self.posYT))
+        config.set('main', 'yb', '%d' % (self.posYB))
+        config.set('main', 'rightalign', '%d' % (int(self.right)))
+        config.set('main', 'mutedeaf', '%d' % (int(self.mutedeaf)))
+        config.set('main', 'chatresize', '%d' % (int(self.chatresize)))
         config.set('main', 'screen', self.screenName)
 
-        with open(self.configFileName,'w') as file:
+        with open(self.configFileName, 'w') as file:
             config.write(file)
         if self.url:
-            with open(self.streamkitUrlFileName,'w') as file:
+            with open(self.streamkitUrlFileName, 'w') as file:
                 file.write(self.url)
-        
 
     @pyqtSlot()
     def on_click(self):
-        self.runJS("document.getElementsByClassName('source-url')[0].value;", self.on_url)
+        self.runJS(
+            "document.getElementsByClassName('source-url')[0].value;", self.on_url)
 
     @pyqtSlot()
     def skip_stream_button(self):
@@ -191,7 +198,7 @@ class Overlay(QtCore.QObject):
         tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}console.log = function(text,input){if(typeof input !== 'undefined'){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\' style=\\'height:0.9em;\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\' style=\\'height:0.9em;\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}}else{console.oldlog(text);}};"
         self.overlay.page().runJavaScript(tweak)
 
-    def runJS(self,string, retFunc=None):
+    def runJS(self, string, retFunc=None):
         if retFunc:
             self.settingWebView.page().runJavaScript(string, retFunc)
         else:
@@ -199,58 +206,61 @@ class Overlay(QtCore.QObject):
 
     def applyTweaks(self):
         if self.right:
-            self.addCSS('cssrightalign','li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }');
+            self.addCSS(
+                'cssrightalign', 'li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }')
         else:
             self.delCSS('cssrightalign')
         if self.mutedeaf:
             self.enableMuteDeaf()
         if self.chatresize:
-            self.addCSS('cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
+            self.addCSS(
+                'cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
         else:
             self.delCSS('cssflexybox')
 
-    def addCSS(self,name,css):
+    def addCSS(self, name, css):
         js = '(function() { css = document.getElementById(\'%s\'); if (css == null) { css = document.createElement(\'style\'); css.type=\'text/css\'; css.id=\'%s\'; document.head.appendChild(css); } css.innerText=\'%s\';})()' % (name, name, css)
         self.overlay.page().runJavaScript(js)
 
-    def delCSS(self,name):
-        js = "(function() { css = document.getElementById('%s'); if(css!=null){ css.parentNode.removeChild(css);} })()" % (name)
+    def delCSS(self, name):
+        js = "(function() { css = document.getElementById('%s'); if(css!=null){ css.parentNode.removeChild(css);} })()" % (
+            name)
         self.overlay.page().runJavaScript(js)
 
     @pyqtSlot()
-    def toggleMuteDeaf(self,button=None):
+    def toggleMuteDeaf(self, button=None):
         self.mutedeaf = self.muteDeaf.isChecked()
         if self.muteDeaf.isChecked():
             self.enableMuteDeaf()
 
     @pyqtSlot()
     def toggleChatResize(self, button=None):
-        self.chatresize=self.chatResize.isChecked()
+        self.chatresize = self.chatResize.isChecked()
         self.applyTweaks()
 
     @pyqtSlot()
-    def toggleRightAlign(self,button=None):
-        self.right=self.rightAlign.isChecked()
+    def toggleRightAlign(self, button=None):
+        self.right = self.rightAlign.isChecked()
         self.applyTweaks()
 
     @pyqtSlot()
     def changeValueFL(self):
-        self.posXL=self.settingsDistanceFromLeft.value()
+        self.posXL = self.settingsDistanceFromLeft.value()
         self.moveOverlay()
 
     @pyqtSlot()
     def changeValueFR(self):
-        self.posXR=self.settingsDistanceFromRight.value()
+        self.posXR = self.settingsDistanceFromRight.value()
         self.moveOverlay()
 
     @pyqtSlot()
     def changeValueFT(self):
-        self.posYT=self.settingsDistanceFromTop.value()
+        self.posYT = self.settingsDistanceFromTop.value()
         self.moveOverlay()
 
     @pyqtSlot()
     def changeValueFB(self):
-        self.posYB=self.settingsDistanceFromBottom.value()
+        self.posYB = self.settingsDistanceFromBottom.value()
         self.moveOverlay()
 
     def createSysTrayIcon(self):
@@ -270,17 +280,21 @@ class Overlay(QtCore.QObject):
         self.trayIcon.show()
 
     def fillPositionWindowOptions(self):
-        self.settingsDistanceFromLeft.valueChanged[int].connect(self.changeValueFL)
+        self.settingsDistanceFromLeft.valueChanged[int].connect(
+            self.changeValueFL)
         self.settingsDistanceFromLeft.setMaximum(self.size.width())
         self.settingsDistanceFromLeft.setValue(self.posXL)
-        self.settingsDistanceFromRight.valueChanged[int].connect(self.changeValueFR)
+        self.settingsDistanceFromRight.valueChanged[int].connect(
+            self.changeValueFR)
         self.settingsDistanceFromRight.setMaximum(self.size.width())
         self.settingsDistanceFromRight.setValue(self.posXR)
-        self.settingsDistanceFromTop.valueChanged[int].connect(self.changeValueFT)
+        self.settingsDistanceFromTop.valueChanged[int].connect(
+            self.changeValueFT)
         self.settingsDistanceFromTop.setMaximum(self.size.height())
         self.settingsDistanceFromTop.setInvertedAppearance(True)
         self.settingsDistanceFromTop.setValue(self.posYT)
-        self.settingsDistanceFromBottom.valueChanged[int].connect(self.changeValueFB)
+        self.settingsDistanceFromBottom.valueChanged[int].connect(
+            self.changeValueFB)
         self.settingsDistanceFromBottom.setMaximum(self.size.height())
         self.settingsDistanceFromBottom.setInvertedAppearance(True)
         self.settingsDistanceFromBottom.setValue(self.posYB)
@@ -309,19 +323,21 @@ class Overlay(QtCore.QObject):
 
         for s in screenList:
             if s.name() == self.screenName:
-                 screen = s
-                 logger.debug("Chose screen %s", screen.name())
-                 break
+                screen = s
+                logger.debug("Chose screen %s", screen.name())
+                break
         # The chosen screen is not in this list. Drop to primary
         else:
             screen = self.app.primaryScreen()
-            logger.warning("Chose screen %r as fallback because %r could not be matched", screen.name(), self.screenName)
+            logger.warning(
+                "Chose screen %r as fallback because %r could not be matched", screen.name(), self.screenName)
 
         # Fill Info!
         self.size = screen.size()
         self.screenName = s.name()
         self.screenOffset = screen.availableGeometry()
-        self.settingsAspectRatio.updateScreen(self.size.width(), self.size.height())
+        self.settingsAspectRatio.updateScreen(
+            self.size.width(), self.size.height())
         self.fillPositionWindowOptions()
         self.moveOverlay()
         self.screenShot(screen)
@@ -332,7 +348,7 @@ class Overlay(QtCore.QObject):
         self.positionbox = QtWidgets.QVBoxLayout()
 
         # Use a grid to lay out screen & sliders
-        self.settingsGridWidget= QtWidgets.QWidget()
+        self.settingsGridWidget = QtWidgets.QWidget()
         self.settingsGrid = QtWidgets.QGridLayout()
 
         # Use the custom Aspect widget to keep the whole thing looking
@@ -342,10 +358,12 @@ class Overlay(QtCore.QObject):
         # Grid contents
         self.settingsPreview = ResizingImage()
         self.settingsPreview.setMinimumSize(1, 1)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.settingsPreview.setSizePolicy(sizePolicy)
         self.settingsDistanceFromLeft = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.settingsDistanceFromRight = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.settingsDistanceFromRight = QtWidgets.QSlider(
+            QtCore.Qt.Horizontal)
         self.settingsDistanceFromTop = QtWidgets.QSlider(QtCore.Qt.Vertical)
         self.settingsDistanceFromBottom = QtWidgets.QSlider(QtCore.Qt.Vertical)
 
@@ -362,11 +380,11 @@ class Overlay(QtCore.QObject):
         self.settingSave.clicked.connect(self.save)
         self.settingsScreen.currentIndexChanged.connect(self.changeScreen)
 
-        self.settingsGrid.addWidget(self.settingsPreview,0,0)
-        self.settingsGrid.addWidget(self.settingsDistanceFromLeft,1,0)
-        self.settingsGrid.addWidget(self.settingsDistanceFromRight,2,0)
-        self.settingsGrid.addWidget(self.settingsDistanceFromTop,0,1)
-        self.settingsGrid.addWidget(self.settingsDistanceFromBottom,0,2)
+        self.settingsGrid.addWidget(self.settingsPreview, 0, 0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromLeft, 1, 0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromRight, 2, 0)
+        self.settingsGrid.addWidget(self.settingsDistanceFromTop, 0, 1)
+        self.settingsGrid.addWidget(self.settingsDistanceFromBottom, 0, 2)
         self.settingsGridWidget.setLayout(self.settingsGrid)
         self.positionbox.addWidget(self.settingsScreen)
         self.positionbox.addWidget(self.settingsAspectRatio)
@@ -381,8 +399,8 @@ class Overlay(QtCore.QObject):
         self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
         self.chatResize = QtWidgets.QCheckBox("Large chat box")
         self.settingTakeUrl = QtWidgets.QPushButton("Save")
-        
-        self.settings.setMinimumSize(400,400)
+
+        self.settings.setMinimumSize(400, 400)
         self.settingTakeUrl.clicked.connect(self.on_click)
         self.settingWebView.loadFinished.connect(self.skip_stream_button)
         self.rightAlign.stateChanged.connect(self.toggleRightAlign)
@@ -391,8 +409,9 @@ class Overlay(QtCore.QObject):
         self.muteDeaf.setChecked(self.mutedeaf)
         self.chatResize.stateChanged.connect(self.toggleChatResize)
         self.chatResize.setChecked(self.chatresize)
-      
-        self.settingWebView.load(QtCore.QUrl("https://streamkit.discord.com/overlay"))
+
+        self.settingWebView.load(QtCore.QUrl(
+            "https://streamkit.discord.com/overlay"))
 
         self.settingsbox.addWidget(self.settingWebView)
         self.settingsbox.addWidget(self.rightAlign)
@@ -404,7 +423,7 @@ class Overlay(QtCore.QObject):
     def screenShot(self, screen):
         screenshot = screen.grabWindow(0)
         self.settingsPreview.setImage(screenshot)
-        self.settingsPreview.setContentsMargins(0,0,0,0)
+        self.settingsPreview.setContentsMargins(0, 0, 0, 0)
 
     def createOverlay(self):
         self.overlay = QWebEngineView()
@@ -412,15 +431,15 @@ class Overlay(QtCore.QObject):
         self.overlay.setAttribute(QtCore.Qt.WA_TranslucentBackground, True)
         self.overlay.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
         self.overlay.setWindowFlags(
-                QtCore.Qt.X11BypassWindowManagerHint |
-                QtCore.Qt.FramelessWindowHint | 
-                QtCore.Qt.WindowStaysOnTopHint | 
-                QtCore.Qt.WindowTransparentForInput | 
-                QtCore.Qt.WindowDoesNotAcceptFocus|
-                QtCore.Qt.NoDropShadowWindowHint|
-                QtCore.Qt.WindowSystemMenuHint |
-                QtCore.Qt.WindowMinimizeButtonHint
-                )
+            QtCore.Qt.X11BypassWindowManagerHint |
+            QtCore.Qt.FramelessWindowHint |
+            QtCore.Qt.WindowStaysOnTopHint |
+            QtCore.Qt.WindowTransparentForInput |
+            QtCore.Qt.WindowDoesNotAcceptFocus |
+            QtCore.Qt.NoDropShadowWindowHint |
+            QtCore.Qt.WindowSystemMenuHint |
+            QtCore.Qt.WindowMinimizeButtonHint
+        )
         self.overlay.loadFinished.connect(self.applyTweaks)
         self.overlay.load(QtCore.QUrl(self.url))
 
@@ -436,9 +455,11 @@ class Overlay(QtCore.QObject):
     def showPosition(self):
         self.position.show()
 
+
 if __name__ == '__main__':
     def main(app):
-        logging.basicConfig(format='%(asctime)-15s %(levelname)-8s %(message)s')
+        logging.basicConfig(
+            format='%(asctime)-15s %(levelname)-8s %(message)s')
         try:
             logging.getLogger().setLevel(os.environ.get("LOGLEVEL", "INFO").upper())
         except ValueError as exc:
