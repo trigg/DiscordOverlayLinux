@@ -210,7 +210,7 @@ class Overlay(QtCore.QObject):
             self.delCSS('cssflexybox')
 
     def addCSS(self,name,css):
-        js = '(function() { css = document.createElement(\'style\');css.type=\'text/css\';css.id=\'%s\';document.head.appendChild(css);css.innerText=\'%s\';})()' % (name,css)
+        js = '(function() { css = document.getElementById(\'%s\'); if (css == null) { css = document.createElement(\'style\'); css.type=\'text/css\'; css.id=\'%s\'; document.head.appendChild(css); } css.innerText=\'%s\';})()' % (name, name, css)
         self.overlay.page().runJavaScript(js)
 
     def delCSS(self,name):
