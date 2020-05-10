@@ -24,19 +24,15 @@ Download and run with Python3
 
 ## Usage
 
-On first launch a setup-window will appear. First choose either 'OBS' or 'XSplit'. There is no functional difference.
+On first use two windows will show.
 
-From there choose which widget you want to use as your overlay from the top, and make any changes to the style. Press the 'Use this overlay' button
+The first allows you to choose which widget you want to use as your overlay from the top, and make any changes to the style. 
 
-Adjust the sliders to position the window, these correspond to invisible padding around the overlay, in the current order:
-- Distance from left of screen
-- Distance from right of screen
-- Distance from top of screen
-- Distance from bottom of screen
-
+The second shows you which display and where on it the overlay will be placed.
 
 ## Known Issues
 - If loaded before Discord is logged in no display will show. Quite possible that unexpected Discord crashes will cause the same issue
+- As this uses Discords StreamKit under the hood there is no way to interact with the overlay itself.
 
 ### Tested configurations
 
