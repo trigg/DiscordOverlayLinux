@@ -102,6 +102,7 @@ class App(QtCore.QObject):
         self.streamkitUrlFileName = os.path.join(self.configDir, "discordurl")
         self.configFileName = os.path.join(self.configDir, "discoverlay.ini")
         self.overlays = []
+        self.presets = None
 
     def main(self):
         os.makedirs(self.configDir, exist_ok=True)
@@ -133,13 +134,34 @@ class App(QtCore.QObject):
         self.showAction.triggered.connect(self.showSettings)
         self.showAction2 = self.trayMenu.addAction("Change Position")
         self.showAction2.triggered.connect(self.showPosition)
+        self.showAction3 = self.trayMenu.addAction("Settings")
+        self.showAction3.triggered.connect(self.showPresetWindow)
         self.exitAction = self.trayMenu.addAction("Close")
         self.exitAction.triggered.connect(self.exit)
         self.trayIcon.setContextMenu(self.trayMenu)
         self.trayIcon.show()
 
-    def preparePresetWindow(self):
-        pass
+    def showPresetWindow(self):
+        self.presets = QtWidgets.QMainWindow()
+        self.presets.setWindowTitle('Configure overlays')
+        gridW = QtWidgets.QWidget()
+        grid = QtWidgets.QGridLayout()
+        gridW.setLayout(grid)
+        count = 0
+        for overlay in self.overlays:
+            label = QtWidgets.QLabel()
+            label.setText(overlay.name)
+            buttonSettings = QtWidgets.QPushButton('Layout')
+            buttonPosition = QtWidgets.QPushButton('Position')
+            buttonSettings.clicked.connect(overlay.showSettings)
+            buttonPosition.clicked.connect(overlay.showPosition)
+            grid.addWidget(label, count, 0)
+            grid.addWidget(buttonSettings, count, 1)
+            grid.addWidget(buttonPosition, count, 2)
+            count = count+1
+
+        self.presets.setCentralWidget(gridW)
+        self.presets.show()
 
     def exit(self):
         self.app.quit()
@@ -208,6 +230,7 @@ class Overlay(QtCore.QObject):
         self.settings = None
 
     def on_save_position(self, url):
+        self.save()
         self.position.close()
         self.position = None
 
@@ -397,6 +420,7 @@ class Overlay(QtCore.QObject):
         if not self.position:
             # Positional Settings Window
             self.position = QtWidgets.QWidget()
+            self.position.setWindowTitle('Overlay %s Position' % (self.name))
             self.positionbox = QtWidgets.QVBoxLayout()
 
             # Use a grid to lay out screen & sliders
@@ -446,11 +470,13 @@ class Overlay(QtCore.QObject):
             self.positionbox.addWidget(self.settingsAspectRatio)
             self.position.setLayout(self.positionbox)
             self.positionbox.addWidget(self.settingSave)
+            self.fillPositionWindowOptions()
             self.position.show()
 
     def showSettings(self):
         if not self.settings:
             self.settings = QtWidgets.QWidget()
+            self.settings.setWindowTitle('Overlay %s Layout' % (self.name))
             self.settingsbox = QtWidgets.QVBoxLayout()
             self.settingWebView = QWebEngineView()
             self.rightAlign = QtWidgets.QCheckBox("Right Align")
