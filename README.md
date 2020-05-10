@@ -7,11 +7,11 @@ A QT browser window to overlay Discord activity over the screen.
 
 ## Dependencies
 
-`qt5-webengine pyqt5 python-pyqtwebengine`
+`qt5-webengine pyqt5 python-pyqtwebengine python-pyxdg`
 
 Ubuntu/Debian:
 
-`sudo apt install python3-pyqt5 python3-pyqt5.qtwebengine`
+`sudo apt install python3-pyqt5 python3-pyqt5 qtwebengine python-pyxdg`
 
 
 ## Installation
