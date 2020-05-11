@@ -420,7 +420,7 @@ class Overlay(QtCore.QObject):
         self.size = screen.size()
         self.screenName = s.name()
         self.screenOffset = screen.availableGeometry()
-        if self.settings:
+        if self.position:
             self.settingsAspectRatio.updateScreen(
                 self.size.width(), self.size.height())
             self.fillPositionWindowOptions()
