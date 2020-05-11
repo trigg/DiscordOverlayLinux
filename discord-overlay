@@ -428,7 +428,9 @@ class Overlay(QtCore.QObject):
         self.moveOverlay()
 
     def showPosition(self):
-        if not self.position:
+        if self.position is not None:
+            self.position.show()
+        else:
             # Positional Settings Window
             self.position = QtWidgets.QWidget()
             self.position.setWindowTitle('Overlay %s Position' % (self.name))
@@ -485,7 +487,9 @@ class Overlay(QtCore.QObject):
             self.position.show()
 
     def showSettings(self):
-        if not self.settings:
+        if self.settings is not None:
+            self.settings.show()
+        else:
             self.settings = QtWidgets.QWidget()
             self.settings.setWindowTitle('Overlay %s Layout' % (self.name))
             self.settingsbox = QtWidgets.QVBoxLayout()
