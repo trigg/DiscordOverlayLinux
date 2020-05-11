@@ -207,7 +207,7 @@ class Overlay(QtCore.QObject):
         self.mutedeaf = config.getboolean(
             self.name, 'mutedeaf', fallback=False)
         self.chatresize = config.getboolean(
-            'main', 'chatresize', fallback=False)
+            self.name, 'chatresize', fallback=False)
         self.screenName = config.get(self.name, 'screen', fallback='None')
         self.url = config.get(self.name, 'url', fallback=None)
         self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
@@ -420,7 +420,7 @@ class Overlay(QtCore.QObject):
         self.size = screen.size()
         self.screenName = s.name()
         self.screenOffset = screen.availableGeometry()
-        if self.settings:
+        if self.position:
             self.settingsAspectRatio.updateScreen(
                 self.size.width(), self.size.height())
             self.fillPositionWindowOptions()
@@ -428,7 +428,9 @@ class Overlay(QtCore.QObject):
         self.moveOverlay()
 
     def showPosition(self):
-        if not self.position:
+        if self.position is not None:
+            self.position.show()
+        else:
             # Positional Settings Window
             self.position = QtWidgets.QWidget()
             self.position.setWindowTitle('Overlay %s Position' % (self.name))
@@ -485,7 +487,9 @@ class Overlay(QtCore.QObject):
             self.position.show()
 
     def showSettings(self):
-        if not self.settings:
+        if self.settings is not None:
+            self.settings.show()
+        else:
             self.settings = QtWidgets.QWidget()
             self.settings.setWindowTitle('Overlay %s Layout' % (self.name))
             self.settingsbox = QtWidgets.QVBoxLayout()
