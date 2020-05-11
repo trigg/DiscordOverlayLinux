@@ -207,7 +207,7 @@ class Overlay(QtCore.QObject):
         self.mutedeaf = config.getboolean(
             self.name, 'mutedeaf', fallback=False)
         self.chatresize = config.getboolean(
-            'main', 'chatresize', fallback=False)
+            self.name, 'chatresize', fallback=False)
         self.screenName = config.get(self.name, 'screen', fallback='None')
         self.url = config.get(self.name, 'url', fallback=None)
         self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
