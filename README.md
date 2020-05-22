@@ -8,7 +8,7 @@ A QT browser window to overlay Discord activity over the screen.
 
 ## Dependencies
 
-`qt5-webengine pyqt5 python-pyqtwebengine python-pyxdg`
+`qt5-webengine pyqt5 python-pyqtwebengine python-pyxdg` (installing with `pip` will install these)
 
 Ubuntu/Debian:
 
@@ -21,7 +21,7 @@ Arch:
 Grab it from the AUR: https://aur.archlinux.org/packages/discord-overlay-git
 
 Others:
-Download and run with Python3
+Clone/Download the repo and `pip install .`
 
 ## Usage
 

@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -560,7 +559,7 @@ class Overlay(QtCore.QObject):
             self.overlay = None
 
 
-if __name__ == '__main__':
+def entrypoint():
     def main(app):
         logging.basicConfig(
             format='%(asctime)-15s %(levelname)-8s %(message)s')
