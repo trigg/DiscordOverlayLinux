@@ -1,8 +1,9 @@
 ## Discord Overlay for Linux
 
 A QT browser window to overlay Discord activity over the screen.
-![Screenshot from 2020-05-05 20-22-25](https://user-images.githubusercontent.com/42376598/81101265-274ea100-8f0e-11ea-83dc-1a5476bffe3d.png)
+![Screenshot](https://user-images.githubusercontent.com/42376598/81101265-274ea100-8f0e-11ea-83dc-1a5476bffe3d.png)
 ![Witch It](https://user-images.githubusercontent.com/964775/81019917-99b47800-8e5f-11ea-9514-2b3cef24ebbf.png)
+![Configuration](https://user-images.githubusercontent.com/535772/82892575-a2243e00-9f47-11ea-8d42-0ec08be39441.png)
 
 
 ## Dependencies
