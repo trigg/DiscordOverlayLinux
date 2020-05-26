@@ -118,6 +118,7 @@ class App(QtCore.QObject):
             overlay = Overlay(self.app, self.configFileName, 'main')
             overlay.load()
             self.overlays.append(overlay)
+            self.showPresetWindow()
         self.app.setQuitOnLastWindowClosed(False)
         self.createSysTrayIcon()
 
