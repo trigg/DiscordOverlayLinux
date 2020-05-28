@@ -195,6 +195,7 @@ class Overlay(QtCore.QObject):
         self.settings = None
         self.position = None
         self.enabled = False
+        self.showtitle = False
 
     def load(self):
         config = ConfigParser(interpolation=None)
@@ -211,6 +212,7 @@ class Overlay(QtCore.QObject):
         self.screenName = config.get(self.name, 'screen', fallback='None')
         self.url = config.get(self.name, 'url', fallback=None)
         self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
+        self.showtitle = config.getboolean(self.name, 'title', fallback=False)
         self.chooseScreen()
         # TODO Check, is there a better logic location for this?
         if self.enabled:
@@ -250,6 +252,7 @@ class Overlay(QtCore.QObject):
         config.set(self.name, 'chatresize', '%d' % (int(self.chatresize)))
         config.set(self.name, 'screen', self.screenName)
         config.set(self.name, 'enabled', '%d' % (int(self.enabled)))
+        config.set(self.name, 'title', '%d' % (int(self.showtitle)))
         if self.url:
             config.set(self.name, 'url', self.url)
         with open(self.configFileName, 'w') as file:
@@ -283,9 +286,19 @@ class Overlay(QtCore.QObject):
             else:
                 self.runJS(chooseChat)
 
+    def enableConsoleCatcher(self):
+        if self.overlay:
+            tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}window.consoleCatchers=[];console.log = function(text,input){if(typeof input !== 'undefined'){window.consoleCatchers.forEach(function(item,index){item(input)})}else{console.oldlog(text);}};"
+            self.overlay.page().runJavaScript(tweak)
+
+    def enableShowVoiceTitle(self):
+        if self.overlay:
+            tweak = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_CHANNEL'){chan=input.data.name;(function() { css = document.getElementById('title-css'); if (css == null) { css = document.createElement('style'); css.type='text/css'; css.id='title-css'; document.head.appendChild(css); } css.innerText='.voice-container:before{content:\"'+chan+'\";background:rgba(30, 33, 36, 0.95);padding:4px 6px;border-radius: 3px;}';})()}})"
+            self.overlay.page().runJavaScript(tweak)
+
     def enableMuteDeaf(self):
         if self.overlay:
-            tweak = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}console.log = function(text,input){if(typeof input !== 'undefined'){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\' style=\\'height:0.9em;\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\' style=\\'height:0.9em;\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}}else{console.oldlog(text);}};"
+            tweak = "window.consoleCatchers.push(function(input){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\' style=\\'height:0.9em;\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\' style=\\'height:0.9em;\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}});"
             self.overlay.page().runJavaScript(tweak)
 
     def runJS(self, string, retFunc=None):
@@ -295,11 +308,14 @@ class Overlay(QtCore.QObject):
             self.settingWebView.page().runJavaScript(string)
 
     def applyTweaks(self):
+        self.enableConsoleCatcher()
         if self.right:
             self.addCSS(
-                'cssrightalign', 'li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }')
+                'cssrightalign', 'li.voice-state{ direction:rtl; }.avatar{ float:right !important; }.user{ display:flex; }.voice-container{margin-top:30px;}.voice-container:before{position:fixed;right:0px;top:0px;}')
         else:
             self.delCSS('cssrightalign')
+        if self.showtitle:
+            self.enableShowVoiceTitle()
         if self.mutedeaf:
             self.enableMuteDeaf()
         if self.chatresize:
@@ -326,6 +342,12 @@ class Overlay(QtCore.QObject):
             self.showOverlay()
         else:
             self.hideOverlay()
+
+    @pyqtSlot()
+    def toggleTitle(self, button=None):
+        self.showtitle = self.showTitle.isChecked()
+        if self.showtitle:
+            self.enableShowVoiceTitle()
 
     @pyqtSlot()
     def toggleMuteDeaf(self, button=None):
@@ -497,6 +519,7 @@ class Overlay(QtCore.QObject):
             self.rightAlign = QtWidgets.QCheckBox("Right Align")
             self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
             self.chatResize = QtWidgets.QCheckBox("Large chat box")
+            self.showTitle = QtWidgets.QCheckBox("Show room title")
             self.enabledButton = QtWidgets.QCheckBox("Enabled")
             self.settingTakeUrl = QtWidgets.QPushButton("Save")
 
@@ -507,6 +530,8 @@ class Overlay(QtCore.QObject):
             self.rightAlign.setChecked(self.right)
             self.muteDeaf.stateChanged.connect(self.toggleMuteDeaf)
             self.muteDeaf.setChecked(self.mutedeaf)
+            self.showTitle.stateChanged.connect(self.toggleTitle)
+            self.showTitle.setChecked(self.showtitle)
             self.enabledButton.stateChanged.connect(self.toggleEnabled)
             self.enabledButton.setChecked(self.enabled)
             self.chatResize.stateChanged.connect(self.toggleChatResize)
@@ -519,6 +544,7 @@ class Overlay(QtCore.QObject):
             self.settingsbox.addWidget(self.rightAlign)
             self.settingsbox.addWidget(self.muteDeaf)
             self.settingsbox.addWidget(self.chatResize)
+            self.settingsbox.addWidget(self.showTitle)
             self.settingsbox.addWidget(self.enabledButton)
             self.settingsbox.addWidget(self.settingTakeUrl)
             self.settings.setLayout(self.settingsbox)
@@ -564,7 +590,7 @@ def entrypoint():
         logging.basicConfig(
             format='%(asctime)-15s %(levelname)-8s %(message)s')
         try:
-            logging.getLogger().setLevel(os.environ.get("LOGLEVEL", "INFO").upper())
+            logging.getLogger().setLevel(os.environ.get("LOGLEVEL", "DEBUG").upper())
         except ValueError as exc:
             logger.warning("Can't set log level: %s", exc)
 
@@ -574,3 +600,4 @@ def entrypoint():
 
     app = QtWidgets.QApplication(sys.argv)
     main(app)
+
