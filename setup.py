@@ -14,8 +14,12 @@ setup(
     url = 'https://github.com/trigg/DiscordOverlayLinux',
     packages = find_packages(),
     include_package_data = True,
+    data_files = [
+        ('share/applications', ['discord-overlay.desktop']),
+        ('share/icons', ['discord-overlay.png']),
+    ],
     install_requires = [
-        'PyQt5 == 5.14.2',
+        'PyQt5 == 5.14.0',
         'PyQt5-sip == 12.7.2',
         'PyQtWebEngine == 5.14.0',
         'pyxdg == 0.26',
