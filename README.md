@@ -25,14 +25,15 @@ Clone/Download the repo and `pip install .`
 
 ## Usage
 
-On first use two windows will show.
+On first use a window will show with two buttons "Layout" and "Position"
 
-The first allows you to choose which widget you want to use as your overlay from the top, and make any changes to the style. 
+The first allows you to choose which widget you want to use as your overlay, and make any changes to the style. 
 
 The second shows you which display and where on it the overlay will be placed.
 
 ## Known Issues
-- If loaded before Discord is logged in no display will show. Quite possible that unexpected Discord crashes will cause the same issue
+- If loaded before Discord is logged in no display will show.
+- Unexpected Discord crashes will leave the overlay in the state it was last showing.
 - As this uses Discords StreamKit under the hood there is no way to interact with the overlay itself.
 
 ### Tested configurations
@@ -40,3 +41,4 @@ The second shows you which display and where on it the overlay will be placed.
 - Wayfire/Wayland - Works Perfectly
 - Openbox/X11     - Works Perfectly
 - Gnome/X11       - Works
+- Gnome/Wayland   - Works
