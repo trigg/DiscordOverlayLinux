@@ -213,6 +213,7 @@ class Overlay(QtCore.QObject):
         self.url = config.get(self.name, 'url', fallback=None)
         self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
         self.showtitle = config.getboolean(self.name, 'title', fallback=False)
+        self.hideinactive = config.getboolean(self.name, 'hideinactive', fallback=False)
         self.chooseScreen()
         # TODO Check, is there a better logic location for this?
         if self.enabled:
@@ -253,6 +254,7 @@ class Overlay(QtCore.QObject):
         config.set(self.name, 'screen', self.screenName)
         config.set(self.name, 'enabled', '%d' % (int(self.enabled)))
         config.set(self.name, 'title', '%d' % (int(self.showtitle)))
+        config.set(self.name, 'hideinactive', '%d' % (int(self.hideinactive)))
         if self.url:
             config.set(self.name, 'url', self.url)
         with open(self.configFileName, 'w') as file:
@@ -296,6 +298,11 @@ class Overlay(QtCore.QObject):
             tweak = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_CHANNEL'){chan=input.data.name;(function() { css = document.getElementById('title-css'); if (css == null) { css = document.createElement('style'); css.type='text/css'; css.id='title-css'; document.head.appendChild(css); } css.innerText='.voice-container:before{content:\"'+chan+'\";background:rgba(30, 33, 36, 0.95);padding:4px 6px;border-radius: 3px;}';})()}})"
             self.overlay.page().runJavaScript(tweak)
 
+    def enableHideInactive(self):
+       if self.overlay:
+           tweak="document.getElementById('app-mount').style='display:none';window.consoleCatchers.push(function(input){if(input.cmd=='AUTHENTICATE'){window.iAm=input.data.user.username;}if(input.evt=='VOICE_STATE_CREATE' || input.evt=='VOICE_STATE_UPDATE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:block'}}if(input.evt=='VOICE_STATE_DELETE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:none'}}});"
+           self.overlay.page().runJavaScript(tweak)
+
     def enableMuteDeaf(self):
         if self.overlay:
             tweak = "window.consoleCatchers.push(function(input){if(input.evt == 'VOICE_STATE_UPDATE'){name=input.data.nick;uState = input.data.voice_state;muteicon = '';if(uState.self_mute || uState.mute){muteicon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx0VMm5EjgAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAABzSURBVDjLxZIxCsAwCEW/oT1P7z93zZJjeIYMv0sCIaBoodTJDz6/JgJfBslOsns1xYONvK66JCeqAC4ALTz+dJvOo0lu/zS87p2C98IdHlq9Buo5D62h17amScMk78hBWXB/DUdP2fyBaINjJiJy4o94AM8J8ksz/MQjAAAAAElFTkSuQmCC\\' style=\\'height:0.9em;\\'>';}deaficon = '';if(uState.self_deaf || uState.deaf){deaficon='<img src=\\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABhMAAAYJQE8CCw1AAAAB3RJTUUH5AUGCx077rhJQQAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAACNSURBVDjLtZPNCcAgDIUboSs4iXTGLuI2XjpBz87g4fWiENr8iNBAQPR9ef7EbfsjAEQAN4A2UtCcGtyMzFxjwVlyBHAwTRFh52gqHDVnF+6L1XJ/w31cp7YvOX/0xlOJ254qYJ1ZLTAmPWeuDVxARDurfBFR8jovMLEKWxG6c1qB55pEuQOpE8vKz30AhEdNuXK0IugAAAAASUVORK5CYII=\\' style=\\'height:0.9em;\\'>';}spans = document.getElementsByTagName('span');for(i=0;i<spans.length;i++){if(spans[i].innerHTML.startsWith(name)){text = name + muteicon + deaficon;spans[i].innerHTML = text;}}}});"
@@ -318,6 +325,8 @@ class Overlay(QtCore.QObject):
             self.enableShowVoiceTitle()
         if self.mutedeaf:
             self.enableMuteDeaf()
+        if self.hideinactive:
+            self.enableHideInactive()
         if self.chatresize:
             self.addCSS(
                 'cssflexybox', 'div.chat-container { width: 100%; height: 100%; top: 0; left: 0; position: fixed; display: flex; flex-direction: column; } div.chat-container > .messages { box-sizing: border-box; width: 100%; flex: 1; }')
@@ -354,6 +363,12 @@ class Overlay(QtCore.QObject):
         self.mutedeaf = self.muteDeaf.isChecked()
         if self.muteDeaf.isChecked():
             self.enableMuteDeaf()
+
+    @pyqtSlot()
+    def toggleHideInactive(self, button=None):
+        self.hideinactive = self.hideInactive.isChecked()
+        if self.hideinactive:
+            self.enableHideInactive()
 
     @pyqtSlot()
     def toggleChatResize(self, button=None):
@@ -520,6 +535,7 @@ class Overlay(QtCore.QObject):
             self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
             self.chatResize = QtWidgets.QCheckBox("Large chat box")
             self.showTitle = QtWidgets.QCheckBox("Show room title")
+            self.hideInactive = QtWidgets.QCheckBox("Hide voice channel when inactive")
             self.enabledButton = QtWidgets.QCheckBox("Enabled")
             self.settingTakeUrl = QtWidgets.QPushButton("Save")
 
@@ -532,6 +548,8 @@ class Overlay(QtCore.QObject):
             self.muteDeaf.setChecked(self.mutedeaf)
             self.showTitle.stateChanged.connect(self.toggleTitle)
             self.showTitle.setChecked(self.showtitle)
+            self.hideInactive.stateChanged.connect(self.toggleHideInactive)
+            self.hideInactive.setChecked(self.hideinactive)
             self.enabledButton.stateChanged.connect(self.toggleEnabled)
             self.enabledButton.setChecked(self.enabled)
             self.chatResize.stateChanged.connect(self.toggleChatResize)
@@ -545,6 +563,7 @@ class Overlay(QtCore.QObject):
             self.settingsbox.addWidget(self.muteDeaf)
             self.settingsbox.addWidget(self.chatResize)
             self.settingsbox.addWidget(self.showTitle)
+            self.settingsbox.addWidget(self.hideInactive)
             self.settingsbox.addWidget(self.enabledButton)
             self.settingsbox.addWidget(self.settingTakeUrl)
             self.settings.setLayout(self.settingsbox)
