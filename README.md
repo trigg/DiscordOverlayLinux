@@ -8,20 +8,18 @@ A QT browser window to overlay Discord activity over the screen.
 
 ## Dependencies
 
-`qt5-webengine pyqt5 python-pyqtwebengine python-pyxdg` (installing with `pip` will install these)
+Python `pip` will deal with dependencies, but for posterity the script needs 
 
-Ubuntu/Debian:
-
-`sudo apt install python3-pyqt5 python3-pyqt5 python3-pyqt5.qtwebengine`
-
+`qt5-webengine pyqt5 python-pyqtwebengine python-pyxdg`
 
 ## Installation
 
-Arch: 
-Grab it from the AUR: https://aur.archlinux.org/packages/discord-overlay-git
-
-Others:
-Clone/Download the repo and `pip install .`
+Manual
+```
+git clone https://github.com/trigg/DiscordOverlayLinux.git
+cd DiscordOverlayLinux
+python -m pip install .
+```
 
 ## Usage
 
@@ -30,6 +28,8 @@ On first use a window will show with two buttons "Layout" and "Position"
 The first allows you to choose which widget you want to use as your overlay, and make any changes to the style. 
 
 The second shows you which display and where on it the overlay will be placed.
+
+Extra Overlays can be added at will
 
 ## Known Issues
 - Unexpected Discord crashes will leave the overlay in the state it was last showing.
