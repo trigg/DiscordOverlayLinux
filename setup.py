@@ -19,10 +19,10 @@ setup(
         ('share/icons', ['discord-overlay.png']),
     ],
     install_requires = [
-        'PyQt5 == 5.14.0',
-        'PyQt5-sip == 12.7.2',
-        'PyQtWebEngine == 5.14.0',
-        'pyxdg == 0.26',
+        'PyQt5',
+        'PyQt5-sip',
+        'PyQtWebEngine',
+        'pyxdg',
     ],
     entry_points = {
         'console_scripts': [
