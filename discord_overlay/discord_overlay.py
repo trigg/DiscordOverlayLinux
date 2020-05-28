@@ -176,7 +176,8 @@ class App(QtCore.QObject):
             self.fillPresetWindow()
         else:
             error_dialog = QtWidgets.QErrorMessage()
-            error_dialog.showMessage('Please use only a-z in overlay names')
+            error_dialog.showMessage("Please only use lower case letters and no symbols")
+            error_dialog.exec_()
 
     def exit(self):
         self.app.quit()
