@@ -32,7 +32,6 @@ The first allows you to choose which widget you want to use as your overlay, and
 The second shows you which display and where on it the overlay will be placed.
 
 ## Known Issues
-- If loaded before Discord is logged in no display will show.
 - Unexpected Discord crashes will leave the overlay in the state it was last showing.
 - As this uses Discords StreamKit under the hood there is no way to interact with the overlay itself.
 
