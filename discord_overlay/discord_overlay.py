@@ -15,10 +15,12 @@ import os
 import logging
 import base64
 import re
+import json
 from configparser import ConfigParser
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebChannel import QWebChannel
 from pathlib import Path
 from xdg.BaseDirectory import xdg_config_home
 
@@ -101,7 +103,7 @@ class App(QtCore.QObject):
         self.configDir = os.path.join(xdg_config_home, "discord-overlay")
         self.streamkitUrlFileName = os.path.join(self.configDir, "discordurl")
         self.configFileName = os.path.join(self.configDir, "discoverlay.ini")
-        self.overlays = []
+        self.settings = None
         self.presets = None
 
     def main(self):
@@ -110,16 +112,27 @@ class App(QtCore.QObject):
         config.read(self.configFileName)
         for section in config.sections():
             if not section == 'core':
-                overlay = Overlay(self.app, self.configFileName, section)
-                overlay.load()
-                self.overlays.append(overlay)
+                url_list = config.get(
+                    section, 'url', fallback=None)
+                for url in url_list.split(","):
+
+                    overlay = Overlay(
+                        self.app, self.configFileName, section, url)
+                    overlay.load()
+                    self.overlays.append(overlay)
         if len(self.overlays) == 0:
-            overlay = Overlay(self.app, self.configFileName, 'main')
+            overlay = Overlay(self.app, self.configFileName, 'main', None)
             overlay.load()
             self.overlays.append(overlay)
             self.showPresetWindow()
         self.app.setQuitOnLastWindowClosed(False)
         self.createSysTrayIcon()
+
+    def reinit(self):
+        for overlay in self.overlays:
+            overlay.destroy()
+        self.__init__(self.app)
+        self.main()
 
     def createSysTrayIcon(self):
         trayImgBase64 = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH5AUEDxsTIFcmagAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAN+SURBVFjDzZcxaCJpGIafmTuyisVgsDCJiyApR3FAokmjsT5juuC0l2BzjVyfwv5Ic43EW0ijWCb2JtMEZxFGximDMKzhLIaYKcK4zeaKM8ux5A5vN8Pmbef/53t4v3/+eT+B5fUGSAKbwAawCgQXzzzgDrgFboAR8HGZlwpLrFkD8sBWo9EQ0+k0sViMcDhMIBAAYD6fM5vNmEwmDIdDqtXqJ+A9oAF/fgvAXqFQKB4fH5PL5ZhOp1iWhWmaGIaBYRgAKIqCoiikUilkWSYajdLv96nX61xdXfWAi/8LsAao7Xb7bblcxrIsWq0WkiSRz+dJJBJEIhGCwb874HkejuMwHo/RNA3XdVFVFVmWOT8/p1KpfABaz7nxHEAC+FnX9VA8HqfZbCJJEqVSiXg8vtRhsW2bbreL67ocHh5i2zbZbPYB+AMY/xfAGvDLaDQKCYLA3t4enU6HTCbD12gwGHBwcMDFxQWPj48kk8kH4Pd/OiF+sUfVdT0kCAK1Wo1er/fVxQEymQy9Xo9arYYgCOi6HgLUf3Ngr91uF3d3d9nZ2aHX6y1t+TItKRaLXF9fc3l5SaVS+XwwnxxYKxQKxXK5TLPZpNPpvFhxgHg8TqfTodlsUi6XKRQKxUW7+WGx5qd3797F7u/vcRyH/f19Xlrr6+uYpsnKygrb29ucnZ39CFji4obbyuVytFotSqUSfqlUKtFqtcjlcgBbwBsRSDYaDXE6nSJJ0ota/1wrJEliOp3SaDREICkCm+l0GsuyyOfz+K18Po9lWaTTaYBNEdiIxWKYpkkikfAdIJFIYJomsVgMYEMEVsPhMIZhEIlEfAeIRCIYhkE4HAZYFYFgIBDAMIzPd7ufCgaDGIbx9CcNinxniYA3n89RFAXP83wv6HkeiqIwn88BPBG4m81mKIqC4zi+AziOg6IozGYzgDsRuJ1MJqRSKcbjse8A4/GYVCrFZDIBuBWBm+FwiCzLaJrmO4CmaciyzHA4BLgRgVG1Wv0UjUZxXRfbtn0rbts2rusSjUafcuNIXKTX9/1+H1VV6Xa7vgF0u11UVaXf77MIrR+fPkOtXq8jyzKu6zIYDF68+GAwwHVdZFmmXq+zSMzfP5B8mQl/1XX9bSgUolarcXp6+s0Qtm1zdHTEyckJDw8PZLPZD8BvryaUvrpY/ioGk1cxmr2a4dT38fwv9cLeiMwLuMsAAAAASUVORK5CYII="
@@ -146,23 +159,33 @@ class App(QtCore.QObject):
         grid = QtWidgets.QGridLayout()
         gridW.setLayout(grid)
         count = 0
+        done = []
         for overlay in self.overlays:
+            if overlay.name in done:
+                continue
+            done.append(overlay.name)
             label = QtWidgets.QLabel()
             label.setText(overlay.name)
             buttonSettings = QtWidgets.QPushButton('Layout')
             buttonPosition = QtWidgets.QPushButton('Position')
+            buttonDelete = QtWidgets.QPushButton('Delete')
             buttonSettings.clicked.connect(overlay.showSettings)
             buttonPosition.clicked.connect(overlay.showPosition)
+            buttonDelete.clicked.connect(lambda: self.deleteOverlay(overlay))
             grid.addWidget(label, count, 0)
             grid.addWidget(buttonSettings, count, 1)
             grid.addWidget(buttonPosition, count, 2)
+            grid.addWidget(buttonDelete, count, 3)
             count = count+1
         addOverlayButton = QtWidgets.QPushButton('Add overlay')
         addOverlayButton.clicked.connect(self.addOverlay)
         addOverlayButton.setMaximumWidth(150)
         self.textbox = QtWidgets.QLineEdit()
         self.textbox.setMaximumWidth(150)
-        self.textbox.setPlaceholderText('overlayName')
+        self.textbox.setPlaceholderText('overlay Name')
+        noneBox = QtWidgets.QLabel()
+        noneBox.setMaximumWidth(150)
+        grid.addWidget(noneBox, count, 3)
         grid.addWidget(addOverlayButton, count, 2)
         grid.addWidget(self.textbox, count, 1)
         self.presets.setCentralWidget(gridW)
@@ -170,33 +193,106 @@ class App(QtCore.QObject):
     def addOverlay(self, button=None):
         if re.match('^[a-z]+$', self.textbox.text()):
             overlay = Overlay(self.app, self.configFileName,
-                              self.textbox.text())
+                              self.textbox.text(), None)
             overlay.load()
             self.overlays.append(overlay)
             self.fillPresetWindow()
         else:
             error_dialog = QtWidgets.QErrorMessage()
-            error_dialog.showMessage("Please only use lower case letters and no symbols")
+            error_dialog.showMessage(
+                "Please only use lower case letters and no symbols")
             error_dialog.exec_()
+
+    def deleteOverlay(self, overlay):
+        n = overlay.name
+        overlay.delete()
+        for overlayToo in self.overlays:
+            if overlayToo.name == n:
+                self.overlays.remove(overlayToo)
+        # self.overlays.remove(overlay)
+        config = ConfigParser(interpolation=None)
+        config.read(self.configFileName)
+        config.remove_section(n)
+        with open(self.configFileName, 'w') as file:
+            config.write(file)
+        self.fillPresetWindow()
 
     def exit(self):
         self.app.quit()
 
+    def autofill(self):
+        if self.settings is not None:
+            self.settings.show()
+        else:
+            self.settings = QtWidgets.QWidget()
+            self.settings.setWindowTitle('Automatic layer creation')
+            self.settingsbox = QtWidgets.QVBoxLayout()
+            self.settingWebView = QWebEngineView()
+            self.settingButton = QtWidgets.QPushButton("Use this Server")
+
+            self.settings.setMinimumSize(400, 400)
+            self.settingButton.clicked.connect(self.get_guild)
+            self.settingWebView.loadFinished.connect(self.autofillScript)
+
+            self.settingWebView.load(QtCore.QUrl(
+                "https://streamkit.discord.com/overlay"))
+
+            self.settingsbox.addWidget(self.settingWebView)
+            self.settingsbox.addWidget(self.settingButton)
+            self.settings.setLayout(self.settingsbox)
+            self.settings.show()
+            self.channelList = None
+
+    def autofillScript(self):
+        skipIntro = "buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}"
+        chooseVoice = "for( let button of document.getElementsByTagName('button')){ if(button.getAttribute('value') == 'voice'){ button.click(); } }"
+        infoListener = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}window.consoleCatchers=[];console.log = function(text,input){if(typeof input !== 'undefined'){window.consoleCatchers.forEach(function(item,index){item(input)})}else{console.oldlog(text);}};"
+        catchGuild = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_GUILD'){window.guilds=input.data.id}})"
+        catchChannel = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_CHANNELS'){window.channels = input.data.channels;}})"
+
+        self.runJS(skipIntro)
+        self.runJS(chooseVoice)
+        self.runJS(infoListener)
+        self.runJS(catchGuild)
+        self.runJS(catchChannel)
+
+    def get_guild(self):
+        getChannel = "[window.channels, window.guilds]"
+        self.runJS(getChannel, self.on_guild)
+
+    def on_guild(self, message):
+        for chan in message[0]:
+            if chan['type'] == 2:
+                url = "https://streamkit.discord.com/overlay/voice/%s/%s?icon=true&online=true&logo=white&text_color=%%23ffffff&text_size=14&text_outline_color=%%23000000&text_outline_size=0&text_shadow_color=%%23000000&text_shadow_size=0&bg_color=%%231e2124&bg_opacity=0.95&bg_shadow_color=%%23000000&bg_shadow_size=0&limit_speaking=false&small_avatars=false&hide_names=false&fade_chat=0" % (message[1], chan[
+                    'id'])
+                logger.warning(url)
+
+    def closeAuto(self):
+        self.settings.close()
+
+    def runJS(self, string, retFunc=None):
+        if retFunc:
+            self.settingWebView.page().runJavaScript(string, retFunc)
+        else:
+            self.settingWebView.page().runJavaScript(string)
+
 
 class Overlay(QtCore.QObject):
 
-    def __init__(self, our_app, configFileName, name):
+    def __init__(self, our_app, configFileName, name, url):
         super().__init__()
         self.configFileName = configFileName
         self.app = our_app
-        self.url = None
+        self.url = url
         self.size = None
         self.name = name
         self.overlay = None
         self.settings = None
         self.position = None
-        self.enabled = False
-        self.showtitle = False
+        self.enabled = True
+        self.showtitle = True
+        self.mutedeaf = True
+        self.showtitle = True
 
     def load(self):
         config = ConfigParser(interpolation=None)
@@ -207,14 +303,15 @@ class Overlay(QtCore.QObject):
         self.posYB = config.getint(self.name, 'yb', fallback=450)
         self.right = config.getboolean(self.name, 'rightalign', fallback=False)
         self.mutedeaf = config.getboolean(
-            self.name, 'mutedeaf', fallback=False)
+            self.name, 'mutedeaf', fallback=True)
         self.chatresize = config.getboolean(
-            self.name, 'chatresize', fallback=False)
+            self.name, 'chatresize', fallback=True)
         self.screenName = config.get(self.name, 'screen', fallback='None')
-        self.url = config.get(self.name, 'url', fallback=None)
-        self.enabled = config.getboolean(self.name, 'enabled', fallback=False)
-        self.showtitle = config.getboolean(self.name, 'title', fallback=False)
-        self.hideinactive = config.getboolean(self.name, 'hideinactive', fallback=False)
+        #self.url = config.get(self.name, 'url', fallback=None)
+        self.enabled = config.getboolean(self.name, 'enabled', fallback=True)
+        self.showtitle = config.getboolean(self.name, 'title', fallback=True)
+        self.hideinactive = config.getboolean(
+            self.name, 'hideinactive', fallback=True)
         self.chooseScreen()
         # TODO Check, is there a better logic location for this?
         if self.enabled:
@@ -276,6 +373,9 @@ class Overlay(QtCore.QObject):
         hideClose = "document.getElementsByClassName('close')[0].style.setProperty('display','none');"
         chooseVoice = "for( let button of document.getElementsByTagName('button')){ if(button.getAttribute('value') == 'voice'){ button.click(); } }"
         chooseChat = "for( let button of document.getElementsByTagName('button')){ if(button.getAttribute('value') == 'chat'){ button.click(); } }"
+        infoListener = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}window.consoleCatchers=[];console.log = function(text,input){if(typeof input !== 'undefined'){window.consoleCatchers.forEach(function(item,index){item(input)})}else{console.oldlog(text);}};"
+        catchGuild = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_GUILD'){window.guilds=input.data.id}})"
+        catchChannel = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_CHANNELS'){window.channels = input.data.channels;}})"
 
         self.runJS(skipIntro)
         self.runJS(hideLogo)
@@ -283,6 +383,9 @@ class Overlay(QtCore.QObject):
         self.runJS(hidePreview)
         self.runJS(resizeHeader)
         self.runJS(hideClose)
+        self.runJS(infoListener)
+        self.runJS(catchGuild)
+        self.runJS(catchChannel)
         if self.url:
             if 'overlay/voice' in self.url:
                 self.runJS(chooseVoice)
@@ -300,9 +403,10 @@ class Overlay(QtCore.QObject):
             self.overlay.page().runJavaScript(tweak)
 
     def enableHideInactive(self):
-       if self.overlay:
-           tweak="document.getElementById('app-mount').style='display:none';window.consoleCatchers.push(function(input){if(input.cmd=='AUTHENTICATE'){window.iAm=input.data.user.username;}if(input.evt=='VOICE_STATE_CREATE' || input.evt=='VOICE_STATE_UPDATE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:block'}}if(input.evt=='VOICE_STATE_DELETE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:none'}}});"
-           self.overlay.page().runJavaScript(tweak)
+        if self.overlay:
+            if 'overlay/voice' in self.url:
+                tweak = "document.getElementById('app-mount').style='display:none';window.consoleCatchers.push(function(input){if(input.cmd=='AUTHENTICATE'){console.error(input.data.user);window.iAm=input.data.user.username;}if(input.evt=='VOICE_STATE_CREATE' || input.evt=='VOICE_STATE_UPDATE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:block'}}if(input.evt=='VOICE_STATE_DELETE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:none'}}});"
+                self.overlay.page().runJavaScript(tweak)
 
     def enableMuteDeaf(self):
         if self.overlay:
@@ -536,12 +640,15 @@ class Overlay(QtCore.QObject):
             self.muteDeaf = QtWidgets.QCheckBox("Show mute and deafen")
             self.chatResize = QtWidgets.QCheckBox("Large chat box")
             self.showTitle = QtWidgets.QCheckBox("Show room title")
-            self.hideInactive = QtWidgets.QCheckBox("Hide voice channel when inactive")
+            self.hideInactive = QtWidgets.QCheckBox(
+                "Hide voice channel when inactive")
             self.enabledButton = QtWidgets.QCheckBox("Enabled")
-            self.settingTakeUrl = QtWidgets.QPushButton("Save")
+            self.settingTakeUrl = QtWidgets.QPushButton("Use this Room")
+            self.settingTakeAllUrl = QtWidgets.QPushButton("Use all Rooms")
 
             self.settings.setMinimumSize(400, 400)
             self.settingTakeUrl.clicked.connect(self.on_click)
+            self.settingTakeAllUrl.clicked.connect(self.getAllRooms)
             self.settingWebView.loadFinished.connect(self.skip_stream_button)
             self.rightAlign.stateChanged.connect(self.toggleRightAlign)
             self.rightAlign.setChecked(self.right)
@@ -567,6 +674,7 @@ class Overlay(QtCore.QObject):
             self.settingsbox.addWidget(self.hideInactive)
             self.settingsbox.addWidget(self.enabledButton)
             self.settingsbox.addWidget(self.settingTakeUrl)
+            self.settingsbox.addWidget(self.settingTakeAllUrl)
             self.settings.setLayout(self.settingsbox)
             self.settings.show()
 
@@ -604,6 +712,32 @@ class Overlay(QtCore.QObject):
             self.overlay.close()
             self.overlay = None
 
+    def delete(self):
+        self.hideOverlay()
+        self.overlay = None
+
+    def getAllRooms(self):
+        logger.warn("Getting Rooms")
+        getChannel = "[window.channels, window.guilds]"
+        self.runJS(getChannel, self.gotAllRooms)
+
+    def gotAllRooms(self, message):
+        logger.warn("Got rooms")
+        sep = ''
+        url = ''
+        for chan in message[0]:
+            if chan['type'] == 2:
+                url += sep+"https://streamkit.discord.com/overlay/voice/%s/%s?icon=true&online=true&logo=white&text_color=%%23ffffff&text_size=14&text_outline_color=%%23000000&text_outline_size=0&text_shadow_color=%%23000000&text_shadow_size=0&bg_color=%%231e2124&bg_opacity=0.95&bg_shadow_color=%%23000000&bg_shadow_size=0&limit_speaking=false&small_avatars=false&hide_names=false&fade_chat=0" % (message[1], chan[
+                    'id'])
+                sep = ','
+
+        if self.overlay:
+            self.overlay.load(QtCore.QUrl(url))
+        self.url = url
+        self.save()
+        self.settings.close()
+        self.settings = None
+
 
 def entrypoint():
     def main(app):
@@ -620,4 +754,3 @@ def entrypoint():
 
     app = QtWidgets.QApplication(sys.argv)
     main(app)
-
