@@ -114,12 +114,13 @@ class App(QtCore.QObject):
             if not section == 'core':
                 url_list = config.get(
                     section, 'url', fallback=None)
-                for url in url_list.split(","):
+                if url_list:
+                    for url in url_list.split(","):
 
-                    overlay = Overlay(
-                        self, self.configFileName, section, url)
-                    overlay.load()
-                    self.overlays.append(overlay)
+                        overlay = Overlay(
+                            self, self.configFileName, section, url)
+                        overlay.load()
+                        self.overlays.append(overlay)
         if len(self.overlays) == 0:
             overlay = Overlay(self, self.configFileName, 'main', None)
             overlay.load()
