@@ -7,7 +7,7 @@ setup(
     name = 'discordoverlaylinux',
     author = 'trigg',
     author_email = 'triggerhapp@gmail.com',
-    version = '0.0.1',
+    version = '0.0.2',
     description = 'Unofficial Discord Overlay for Linux',
     long_description = readme(),
     long_description_content_type = 'text/markdown',
