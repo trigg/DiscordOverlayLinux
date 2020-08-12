@@ -117,11 +117,11 @@ class App(QtCore.QObject):
                 for url in url_list.split(","):
 
                     overlay = Overlay(
-                        self.app, self.configFileName, section, url)
+                        self, self.configFileName, section, url)
                     overlay.load()
                     self.overlays.append(overlay)
         if len(self.overlays) == 0:
-            overlay = Overlay(self.app, self.configFileName, 'main', None)
+            overlay = Overlay(self, self.configFileName, 'main', None)
             overlay.load()
             self.overlays.append(overlay)
             self.showPresetWindow()
@@ -130,7 +130,8 @@ class App(QtCore.QObject):
 
     def reinit(self):
         for overlay in self.overlays:
-            overlay.destroy()
+            overlay.delete()
+        self.trayIcon.hide()
         self.__init__(self.app)
         self.main()
 
@@ -192,7 +193,7 @@ class App(QtCore.QObject):
 
     def addOverlay(self, button=None):
         if re.match('^[a-z]+$', self.textbox.text()):
-            overlay = Overlay(self.app, self.configFileName,
+            overlay = Overlay(self, self.configFileName,
                               self.textbox.text(), None)
             overlay.load()
             self.overlays.append(overlay)
@@ -220,69 +221,14 @@ class App(QtCore.QObject):
     def exit(self):
         self.app.quit()
 
-    def autofill(self):
-        if self.settings is not None:
-            self.settings.show()
-        else:
-            self.settings = QtWidgets.QWidget()
-            self.settings.setWindowTitle('Automatic layer creation')
-            self.settingsbox = QtWidgets.QVBoxLayout()
-            self.settingWebView = QWebEngineView()
-            self.settingButton = QtWidgets.QPushButton("Use this Server")
-
-            self.settings.setMinimumSize(400, 400)
-            self.settingButton.clicked.connect(self.get_guild)
-            self.settingWebView.loadFinished.connect(self.autofillScript)
-
-            self.settingWebView.load(QtCore.QUrl(
-                "https://streamkit.discord.com/overlay"))
-
-            self.settingsbox.addWidget(self.settingWebView)
-            self.settingsbox.addWidget(self.settingButton)
-            self.settings.setLayout(self.settingsbox)
-            self.settings.show()
-            self.channelList = None
-
-    def autofillScript(self):
-        skipIntro = "buttons = document.getElementsByTagName('button');for(i=0;i<buttons.length;i++){if(buttons[i].innerHTML=='Install for OBS'){buttons[i].click()}}"
-        chooseVoice = "for( let button of document.getElementsByTagName('button')){ if(button.getAttribute('value') == 'voice'){ button.click(); } }"
-        infoListener = "if(typeof console.oldlog === 'undefined'){console.oldlog=console.log;}window.consoleCatchers=[];console.log = function(text,input){if(typeof input !== 'undefined'){window.consoleCatchers.forEach(function(item,index){item(input)})}else{console.oldlog(text);}};"
-        catchGuild = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_GUILD'){window.guilds=input.data.id}})"
-        catchChannel = "window.consoleCatchers.push(function(input){if(input.cmd == 'GET_CHANNELS'){window.channels = input.data.channels;}})"
-
-        self.runJS(skipIntro)
-        self.runJS(chooseVoice)
-        self.runJS(infoListener)
-        self.runJS(catchGuild)
-        self.runJS(catchChannel)
-
-    def get_guild(self):
-        getChannel = "[window.channels, window.guilds]"
-        self.runJS(getChannel, self.on_guild)
-
-    def on_guild(self, message):
-        for chan in message[0]:
-            if chan['type'] == 2:
-                url = "https://streamkit.discord.com/overlay/voice/%s/%s?icon=true&online=true&logo=white&text_color=%%23ffffff&text_size=14&text_outline_color=%%23000000&text_outline_size=0&text_shadow_color=%%23000000&text_shadow_size=0&bg_color=%%231e2124&bg_opacity=0.95&bg_shadow_color=%%23000000&bg_shadow_size=0&limit_speaking=false&small_avatars=false&hide_names=false&fade_chat=0" % (message[1], chan[
-                    'id'])
-                logger.warning(url)
-
-    def closeAuto(self):
-        self.settings.close()
-
-    def runJS(self, string, retFunc=None):
-        if retFunc:
-            self.settingWebView.page().runJavaScript(string, retFunc)
-        else:
-            self.settingWebView.page().runJavaScript(string)
-
 
 class Overlay(QtCore.QObject):
 
-    def __init__(self, our_app, configFileName, name, url):
+    def __init__(self, up, configFileName, name, url):
         super().__init__()
         self.configFileName = configFileName
-        self.app = our_app
+        self.parent = up
+        self.app = up.app
         self.url = url
         self.size = None
         self.name = name
@@ -355,6 +301,8 @@ class Overlay(QtCore.QObject):
         config.set(self.name, 'hideinactive', '%d' % (int(self.hideinactive)))
         if self.url:
             config.set(self.name, 'url', self.url)
+            if ',' in self.url:
+                self.parent.reinit()
         with open(self.configFileName, 'w') as file:
             config.write(file)
 
@@ -714,15 +662,17 @@ class Overlay(QtCore.QObject):
 
     def delete(self):
         self.hideOverlay()
+        if self.settings:
+            self.settings.close()
+        if self.position:
+            self.position.close()
         self.overlay = None
 
     def getAllRooms(self):
-        logger.warn("Getting Rooms")
         getChannel = "[window.channels, window.guilds]"
         self.runJS(getChannel, self.gotAllRooms)
 
     def gotAllRooms(self, message):
-        logger.warn("Got rooms")
         sep = ''
         url = ''
         for chan in message[0]:
