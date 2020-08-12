@@ -18,6 +18,7 @@ Manual
 ```
 git clone https://github.com/trigg/DiscordOverlayLinux.git
 cd DiscordOverlayLinux
+python -m pip install PyQtWebEngine
 python -m pip install .
 ```
 
@@ -37,7 +38,7 @@ Extra Overlays can be added at will
 
 ### Tested configurations
 
-- Wayfire/Wayland - Works Perfectly
-- Openbox/X11     - Works Perfectly
+- Wayfire/Wayland - Works
+- Openbox/X11     - Works
 - Gnome/X11       - Works
 - Gnome/Wayland   - Works
