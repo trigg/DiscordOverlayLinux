@@ -403,7 +403,7 @@ class Overlay(QtCore.QObject):
             self.overlay.page().runJavaScript(tweak)
 
     def enableHideInactive(self):
-        if self.overlay:
+        if self.overlay and self.url:
             if 'overlay/voice' in self.url:
                 tweak = "document.getElementById('app-mount').style='display:none';window.consoleCatchers.push(function(input){if(input.cmd=='AUTHENTICATE'){console.error(input.data.user);window.iAm=input.data.user.username;}if(input.evt=='VOICE_STATE_CREATE' || input.evt=='VOICE_STATE_UPDATE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:block'}}if(input.evt=='VOICE_STATE_DELETE'){if(input.data.nick==window.iAm){document.getElementById('app-mount').style='display:none'}}});"
                 self.overlay.page().runJavaScript(tweak)
