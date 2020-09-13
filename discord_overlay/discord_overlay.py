@@ -141,7 +141,7 @@ class App(QtCore.QObject):
         pm = QtGui.QPixmap()
         pm.loadFromData(base64.b64decode(trayImgBase64))
 
-        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon(pm), self.app)
+        self.trayIcon = QtWidgets.QSystemTrayIcon(QtGui.QIcon.fromTheme('discord-overlay-tray', QtGui.QIcon(pm)), self.app)
         self.trayMenu = QtWidgets.QMenu()
         self.showAction3 = self.trayMenu.addAction("Settings")
         self.showAction3.triggered.connect(self.showPresetWindow)
