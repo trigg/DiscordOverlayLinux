@@ -16,6 +16,7 @@ import logging
 import base64
 import re
 import json
+import signal
 from configparser import ConfigParser
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import pyqtSlot
@@ -25,6 +26,7 @@ from pathlib import Path
 from xdg.BaseDirectory import xdg_config_home
 
 logger = logging.getLogger(__name__)
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 class ResizingImage(QtWidgets.QLabel):
