@@ -1,3 +1,6 @@
+# Discord overlay is deprecated
+We are now developing [Discover Overlay](https://github.com/trigg/Discover). We strongly advise you try that instead!
+
 ## Discord Overlay for Linux
 
 A QT browser window to overlay Discord activity over the screen.
