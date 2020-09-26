@@ -6,7 +6,6 @@ def readme():
 setup(
     name = 'discordoverlaylinux',
     author = 'trigg',
-    author_email = 'triggerhapp@gmail.com',
     version = '0.0.2',
     description = 'Unofficial Discord Overlay for Linux',
     long_description = readme(),
