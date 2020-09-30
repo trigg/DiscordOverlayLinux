@@ -27,7 +27,7 @@ python -m pip install .
 
 ## Usage
 
-On first use a window will show with two buttons "Layout" and "Position"
+On first use a window will show up with two buttons "Layout" and "Position"
 
 The first allows you to choose which widget you want to use as your overlay, and make any changes to the style. 
 
@@ -37,7 +37,7 @@ Extra Overlays can be added at will
 
 ## Known Issues
 - Unexpected Discord crashes will leave the overlay in the state it was last showing.
-- As this uses Discords StreamKit under the hood there is no way to interact with the overlay itself.
+- As this uses Discord's StreamKit under the hood there is no way to interact with the overlay itself.
 
 ### Tested configurations
 
