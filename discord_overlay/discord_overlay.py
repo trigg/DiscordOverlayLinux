@@ -23,7 +23,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWebChannel import QWebChannel
 from pathlib import Path
-from xdg.BaseDirectory import xdg_config_home
+from xdg import xdg_config_home
 
 logger = logging.getLogger(__name__)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -102,7 +102,7 @@ class App(QtCore.QObject):
         super().__init__()
         self.app = our_app
         self.overlays = []
-        self.configDir = os.path.join(xdg_config_home, "discord-overlay")
+        self.configDir = os.path.join(xdg_config_home(), "discord-overlay")
         self.streamkitUrlFileName = os.path.join(self.configDir, "discordurl")
         self.configFileName = os.path.join(self.configDir, "discoverlay.ini")
         self.settings = None
